@@ -17,9 +17,9 @@ const AssetManagement = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left">
-          <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-400">
+          <thead className="bg-gray-200 text-[10px] uppercase font-bold text-gray-800">
             <tr>
               <th className="px-6 py-4">Asset ID</th>
               <th className="px-6 py-4">Name</th>
