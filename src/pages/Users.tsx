@@ -180,7 +180,7 @@ const UsersPage = () => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => setViewingUser(user)}><SquareArrowOutUpLeft size={14}/></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-yellow-500" onClick={() => setViewingUser(user)}><SquareArrowOutUpLeft size={14}/></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => { setSelectedUser(user); setIsModalOpen(true); }}><Edit2 size={14}/></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"><Trash2 size={14}/></Button>
                   </div>

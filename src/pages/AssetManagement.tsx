@@ -97,7 +97,7 @@ const AssetManagement = () => {
     <Layout title="Asset Management" icon={Box}>
       {/* Toast Notification */}
       {showToast && (
-        <div className="fixed bottom-10 right-10 z-[200] animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="fixed bottom-10 right-10 z-200 animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div className={cn(
             "flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border",
             isDark ? "bg-[#111118] border-emerald-500/50 text-emerald-400" : "bg-white border-emerald-100 text-emerald-600"
@@ -183,7 +183,7 @@ const AssetManagement = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => setViewingAsset(asset)}><SquareArrowOutUpLeft size={14}/></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-yellow-500" onClick={() => setViewingAsset(asset)}><SquareArrowOutUpLeft size={14}/></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }}><Edit2 size={14}/></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => handleDelete(asset.id)}><Trash2 size={14}/></Button>
                     </div>
@@ -207,7 +207,7 @@ const AssetManagement = () => {
 
       {/* --- SIDE DETAILS DRAWER --- */}
       {viewingAsset && (
-        <div className="fixed inset-0 z-[100] flex justify-end">
+        <div className="fixed inset-0 z-100 flex justify-end">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setViewingAsset(null)} />
           <aside className={cn(
             "relative w-full max-w-lg h-full p-10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] animate-slide-in-right overflow-y-auto border-l",
@@ -219,7 +219,7 @@ const AssetManagement = () => {
               <h2 className="text-4xl font-black mb-2 tracking-tighter">{viewingAsset.name}</h2>
               <p className="font-mono text-blue-500 text-sm font-bold uppercase tracking-widest">{viewingAsset.id}</p>
             </header>
-            
+
             <section className="space-y-8">
               <div className={cn("rounded-2xl p-6 border", isDark ? "bg-white/5 border-white/5" : "bg-gray-50 border-gray-100 shadow-inner")}>
                 <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4">Hardware Profile</h3>

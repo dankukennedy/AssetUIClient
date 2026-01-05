@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layout } from '../component/Layout';
-import { Settings, Edit2, Lock, ShieldAlert } from 'lucide-react';
+import { Settings, Edit2, Lock } from 'lucide-react';
 
 const AccountSettings = () => {
   return (
