@@ -175,6 +175,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             {children}
           </div>
         </main>
+        <footer className={`text-center py-4 text-[10px] uppercase tracking-widest border-t transition-colors ${isDark ? 'text-gray-600 border-white/5' : 'text-gray-400 border-gray-100'}`}>
+          © 2026 Asset App. All rights reserved.
+        </footer>
       </div>
     </div>
   );
