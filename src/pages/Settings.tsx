@@ -7,7 +7,7 @@ import { Layout } from '../component/Layout';
 import { useTheme } from '../component/theme-provider';
 import { cn } from '../lib/utils';
 import { Button } from "../component/ui/button";
-import { SettingsModal, type UserProfile } from '../models/SettingsModel';
+import { SettingsModal, type UserProfile } from '../models/SettingsModal';
 
 export default function Settings() {
   const { theme } = useTheme();

@@ -8,7 +8,7 @@ import {
 import { useTheme } from '../component/theme-provider';
 import { cn } from '../lib/utils';
 import { Button } from "../component/ui/button";
-import { AssetModal, type Asset} from '../models/AssetModel';
+import { AssetModal, type Asset} from '../models/AssetModal';
 
 const AssetManagement = () => {
   const { theme } = useTheme();
