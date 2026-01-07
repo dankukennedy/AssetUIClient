@@ -1,151 +1,30 @@
 import React, { useState, useMemo } from "react";
 import { Layout } from "../component/Layout";
 import {
-  Users as UsersIcon,
+  UserCheck,
   Plus,
   Edit2,
   Trash2,
-  SquareArrowOutUpLeft,
   Search,
+  ArrowRightLeft,
   ChevronLeft,
   ChevronRight,
   X,
-  Activity,
-  School2Icon,
+  Monitor,
   CheckCircle2,
-  Download, // Added for CSV
+  SquareArrowOutUpLeft,
+  ShieldCheck,
+  Download,
+  AlertOctagon,
+  Loader2,
+  Filter,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
 import { Button } from "../component/ui/button";
+import { AllocationModal, type Allocation } from "../models/AllocationsModal";
+import { TransfersModal } from "../models/TransfersModal";
 
-// --- Types ---
-interface Block {
-  name: string;
-  blockId: string;
-}
-
-// --- Sub-Component: BlockModal ---
-interface BlockModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (block: Block) => void;
-  initialData?: Block | null;
-  isDark: boolean;
-}
-
-const BlockModal = ({
-  isOpen,
-  onClose,
-  onSave,
-  initialData,
-  isDark,
-}: BlockModalProps) => {
-  const [formData, setFormData] = useState<Block>({ name: "", blockId: "" });
-
-  React.useEffect(() => {
-    if (initialData) setFormData(initialData);
-    else
-      setFormData({
-        name: "",
-        blockId: `BLK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      });
-  }, [initialData, isOpen]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div
-        className={cn(
-          "w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transition-all transform animate-in fade-in zoom-in duration-200",
-          isDark
-            ? "bg-[#111118] border border-white/10 text-white"
-            : "bg-white text-gray-900"
-        )}
-      >
-        <div
-          className={cn(
-            "px-6 py-4 border-b flex justify-between items-center",
-            isDark ? "border-white/5" : "border-gray-100"
-          )}
-        >
-          <h3 className="font-black text-xs uppercase tracking-widest">
-            {initialData ? "Update Block" : "Initialize Block"}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-red-500 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <form
-          className="p-6 space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSave(formData);
-          }}
-        >
-          <div>
-            <label className="block text-[10px] font-black uppercase text-gray-500 mb-1">
-              Block Identifier
-            </label>
-            <input
-              readOnly
-              className={cn(
-                "w-full px-4 py-2 rounded-lg border outline-none opacity-50 font-mono text-xs",
-                isDark
-                  ? "bg-black/40 border-white/10 text-blue-400"
-                  : "bg-gray-100 border-gray-200"
-              )}
-              value={formData.blockId}
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-black uppercase text-gray-500 mb-1">
-              Block Name / Status
-            </label>
-            <input
-              required
-              type="text"
-              placeholder="e.g. Active, Maintenance, Restricted"
-              className={cn(
-                "w-full px-4 py-2 rounded-lg border outline-none",
-                isDark
-                  ? "bg-black/20 border-white/10 text-white"
-                  : "bg-gray-50 border-gray-200"
-              )}
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-            />
-          </div>
-          <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-white/5">
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={onClose}
-              className="text-xs font-bold"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="default"
-              type="submit"
-              className="text-xs font-black uppercase tracking-widest"
-            >
-              {initialData ? "Save Changes" : "Commit Block"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// --- Main Page Component ---
 const BlocksPage = () => {
   const { theme } = useTheme();
   const isDark =
@@ -153,125 +32,210 @@ const BlocksPage = () => {
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
+  // --- States ---
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDept, setSelectedDept] = useState("All Departments");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
-  const [viewingBlock, setViewingBlock] = useState<Block | null>(null);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [selectedAlloc, setSelectedAlloc] = useState<Allocation | null>(null);
+  const [viewingAlloc, setViewingAlloc] = useState<Allocation | null>(null);
+
+  // Custom Revocation States
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [isRevoking, setIsRevoking] = useState(false);
+
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState({ title: "", sub: "" });
 
   const itemsPerPage = 6;
 
-  const [blocks, setBlocks] = useState<Block[]>([
-    { name: "Active", blockId: "z0v5rr8r8r8733hy8j" },
-    { name: "Maintenance", blockId: "a0v82c8r8r8777hy8t" },
-    { name: "Restricted", blockId: "y0v5rr8r855548hy8y" },
-    { name: "Active", blockId: "f0v5rr588r88h8hy8c" },
-    { name: "Offline", blockId: "g0v5rr8r8r5558hy8w" },
+  const [allocations, setAllocations] = useState<Allocation[]>([
+    {
+      id: "ALC-101",
+      assetId: "AST-001",
+      assetName: "MacBook Pro",
+      userId: "USR-01",
+      userName: "Edem Quist",
+      date: "2023-11-05",
+      department: "Engineering",
+    },
+    {
+      id: "ALC-102",
+      assetId: "AST-003",
+      assetName: "iPhone 15",
+      userId: "USR-09",
+      userName: "Sarah Smith",
+      date: "2024-01-12",
+      department: "Marketing",
+    },
   ]);
 
-  // --- CSV Export Logic ---
-  const downloadCSV = () => {
-    // Generate headers and data rows
-    const headers = ["Block ID", "Status/Name"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredBlocks.map((block) => `${block.blockId},${block.name}`),
-    ].join("\n");
+  // Derived unique departments for the filter
+  const departments = useMemo(() => {
+    const depts = new Set(allocations.map((a) => a.department));
+    return ["All Departments", ...Array.from(depts)];
+  }, [allocations]);
 
-    // Create file and trigger download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `system_blocks_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Provide feedback
-    setToastMessage({
-      title: "Data Exported",
-      sub: "CSV manifest downloaded successfully",
-    });
-    triggerToast();
-  };
-
-  const filteredBlocks = useMemo(() => {
-    return blocks.filter(
-      (block) =>
-        block.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        block.blockId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, blocks]);
-
-  const totalPages = Math.ceil(filteredBlocks.length / itemsPerPage);
-  const paginatedBlocks = filteredBlocks.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const handleSaveBlock = (blockData: Block) => {
-    if (selectedBlock) {
-      setBlocks(
-        blocks.map((b) => (b.blockId === selectedBlock.blockId ? blockData : b))
-      );
-      setToastMessage({
-        title: "System Updated",
-        sub: "Block parameters reconfigured",
-      });
-    } else {
-      setBlocks([blockData, ...blocks]);
-      setToastMessage({
-        title: "Block Initialized",
-        sub: "New system entity registered",
-      });
-    }
-    setIsModalOpen(false);
-    triggerToast();
-  };
-
-  const handleDeleteBlock = (id: string) => {
-    if (
-      window.confirm(
-        "CRITICAL: Deleting this block may interrupt dependent system processes. Proceed?"
-      )
-    ) {
-      setBlocks(blocks.filter((b) => b.blockId !== id));
-      setToastMessage({
-        title: "Block Purged",
-        sub: "Entity removed from system index",
-      });
-      triggerToast();
-    }
-  };
-
-  const triggerToast = () => {
+  // --- Logic: Trigger Toast ---
+  const triggerToast = (title: string, sub: string) => {
+    setToastMessage({ title, sub });
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  // --- Handlers ---
+  const handleSave = (data: Allocation) => {
+    if (selectedAlloc) {
+      setAllocations(
+        allocations.map((a) => (a.id === selectedAlloc.id ? data : a))
+      );
+      triggerToast("Assignment Updated", "Personnel records synchronized");
+    } else {
+      setAllocations([data, ...allocations]);
+      triggerToast("New Allocation Created", "Resource successfully assigned");
+    }
+    setIsModalOpen(false);
+  };
+
+  const confirmRevocation = async () => {
+    if (!revokingId) return;
+    setIsRevoking(true);
+    await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate processing
+
+    setAllocations(allocations.filter((a) => a.id !== revokingId));
+    triggerToast("Assignment Revoked", `Asset ${revokingId} returned to pool`);
+
+    setRevokingId(null);
+    setIsRevoking(false);
+    if (viewingAlloc?.id === revokingId) setViewingAlloc(null);
+  };
+
+  const downloadCSV = () => {
+    const headers = [
+      "Allocation ID",
+      "User Name",
+      "User ID",
+      "Asset Name",
+      "Asset ID",
+      "Department",
+      "Date",
+    ];
+    const csvContent = [
+      headers.join(","),
+      ...allocations.map((a) =>
+        [
+          a.id,
+          `"${a.userName}"`,
+          a.userId,
+          `"${a.assetName}"`,
+          a.assetId,
+          a.department,
+          a.date,
+        ].join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `allocations_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerToast("Export Successful", "Allocation logs saved to CSV");
+  };
+
+  // --- Logic: Search & Pagination ---
+  const filteredAllocations = useMemo(() => {
+    return allocations.filter((a) => {
+      const matchesSearch =
+        a.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.assetId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.department.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesDept =
+        selectedDept === "All Departments" || a.department === selectedDept;
+
+      return matchesSearch && matchesDept;
+    });
+  }, [searchTerm, selectedDept, allocations]);
+
+  const totalPages = Math.ceil(filteredAllocations.length / itemsPerPage);
+  const paginated = filteredAllocations.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
-    <Layout title="System Control" icon={UsersIcon}>
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed bottom-10 right-10 z-[400] animate-in slide-in-from-bottom-5">
+    <Layout title="Resource Assignment" icon={UserCheck}>
+      {/* 1. REVOCATION CONFIRMATION MODAL */}
+      {revokingId && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div
             className={cn(
-              "flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border",
+              "p-8 rounded-[2.5rem] border max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95",
               isDark
-                ? "bg-[#111118] border-blue-500/50 text-blue-400"
-                : "bg-white border-blue-100 text-blue-600"
+                ? "bg-[#0d0d12] border-white/10"
+                : "bg-white border-gray-200"
+            )}
+          >
+            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertOctagon className="text-amber-500" size={32} />
+            </div>
+            <h3 className="text-xl font-black mb-2 tracking-tighter uppercase text-amber-500">
+              Revoke Assignment?
+            </h3>
+            <p className="text-[10px] text-gray-500 mb-8 font-mono tracking-widest uppercase">
+              REMOVING ACCESS FOR RECORD: {revokingId}
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="ghost"
+                className="flex-1 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+                disabled={isRevoking}
+                onClick={() => setRevokingId(null)}
+              >
+                Abort
+              </Button>
+              <Button
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
+                onClick={confirmRevocation}
+                disabled={isRevoking}
+              >
+                {isRevoking ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  "Confirm"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-10 right-10 z-[400] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div
+            className={cn(
+              "flex items-center gap-4 px-8 py-5 rounded-[2rem] shadow-2xl border",
+              isDark
+                ? "bg-[#111118] border-emerald-500/50 text-emerald-400"
+                : "bg-white border-emerald-100 text-emerald-600"
             )}
           >
             <CheckCircle2 size={20} />
             <div className="flex flex-col">
-              <span className="text-sm font-black">{toastMessage.title}</span>
-              <span className="text-[10px] opacity-70 uppercase tracking-widest">
+              <span className="text-sm font-black uppercase tracking-tight">
+                {toastMessage.title}
+              </span>
+              <span className="text-[10px] opacity-70 uppercase font-bold tracking-[0.2em]">
                 {toastMessage.sub}
               </span>
             </div>
@@ -284,57 +248,61 @@ const BlocksPage = () => {
         <div>
           <h2
             className={cn(
-              "text-2xl font-black tracking-tight",
+              "text-2xl font-black tracking-tight uppercase",
               isDark ? "text-white" : "text-gray-900"
             )}
           >
-            System Blocks
+            Asset Allocation
           </h2>
-          <p className="text-sm text-gray-500">
-            Node management and status control
+          <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+            Managing hardware distribution across personnel
           </p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
-          {/* Added Export Button */}
+        <div className="flex gap-3">
           <Button
             variant="outline"
-            className="flex items-center gap-2 font-black uppercase text-[10px] tracking-widest py-5 px-6 border-slate-700/50 hover:bg-slate-500/10"
             onClick={downloadCSV}
+            className="h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
           >
-            <Download size={18} /> Export CSV
+            <Download size={16} className="mr-2" /> Export CSV
           </Button>
           <Button
-            className="flex items-center gap-2 font-black uppercase text-[10px] tracking-widest py-5 px-6 shadow-lg shadow-blue-500/20"
+            variant="outline"
+            onClick={() => setIsTransferOpen(true)}
+            className="h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
+          >
+            <ArrowRightLeft size={16} className="mr-2" /> Quick Transfer
+          </Button>
+          <Button
             onClick={() => {
-              setSelectedBlock(null);
+              setSelectedAlloc(null);
               setIsModalOpen(true);
             }}
+            className="h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
           >
-            <Plus size={18} /> New Block
+            <Plus size={16} className="mr-2" /> New Assignment
           </Button>
         </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Search & Filter Bar */}
       <div
         className={cn(
-          "p-4 rounded-xl mb-6",
-          isDark
-            ? "bg-[#111118] border border-white/5"
-            : "bg-white border border-gray-100 shadow-sm"
+          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col md:flex-row gap-4 items-center",
+          isDark ? "bg-[#111118] border-white/5" : "bg-white border-gray-100"
         )}
       >
-        <div className="relative w-full md:w-96">
+        <div className="relative flex-1 w-full">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
             size={18}
           />
           <input
-            placeholder="Search records by ID or Name..."
+            placeholder="Search assignee, asset, or department..."
             className={cn(
-              "w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none",
+              "w-full pl-12 pr-4 py-3 rounded-xl text-sm outline-none transition-all",
               isDark
-                ? "bg-black/20 border-white/10 text-white"
+                ? "bg-black/20 border-white/10 text-white focus:border-blue-500/50"
                 : "bg-gray-50 border-gray-200"
             )}
             value={searchTerm}
@@ -344,136 +312,192 @@ const BlocksPage = () => {
             }}
           />
         </div>
+
+        <div className="relative w-full md:w-64">
+          <Filter
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            size={16}
+          />
+          <select
+            value={selectedDept}
+            onChange={(e) => {
+              setSelectedDept(e.target.value);
+              setCurrentPage(1);
+            }}
+            className={cn(
+              "w-full pl-10 pr-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none transition-all appearance-none cursor-pointer",
+              isDark
+                ? "bg-black/20 border-white/10 text-white focus:border-blue-500/50"
+                : "bg-gray-50 border-gray-200 text-gray-700"
+            )}
+          >
+            {departments.map((dept) => (
+              <option
+                key={dept}
+                value={dept}
+                className={isDark ? "bg-[#0d0d12]" : "bg-white"}
+              >
+                {dept}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* Table Content */}
       <div
         className={cn(
-          "rounded-xl border overflow-hidden",
-          isDark ? "border-white/5 bg-[#111118]" : "border-gray-100 bg-white"
+          "rounded-[2rem] border overflow-hidden",
+          isDark
+            ? "border-white/5 bg-[#111118]"
+            : "bg-white shadow-sm border-gray-100"
         )}
       >
-        <table className="w-full text-left">
-          <thead
-            className={cn(
-              "text-[10px] uppercase font-black tracking-widest",
-              isDark ? "bg-white/5 text-gray-400" : "bg-gray-50 text-gray-500"
-            )}
-          >
-            <tr>
-              <th className="px-6 py-4">Block Identity</th>
-              <th className="px-6 py-4">Status / Label</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody
-            className={cn(
-              "divide-y",
-              isDark ? "divide-white/5" : "divide-gray-50"
-            )}
-          >
-            {paginatedBlocks.map((block) => (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
               <tr
-                key={block.blockId}
                 className={cn(
-                  "text-sm transition-colors",
-                  isDark ? "hover:bg-white/5" : "hover:bg-blue-50/50"
+                  "text-[10px] uppercase tracking-[0.2em] font-black",
+                  isDark
+                    ? "bg-white/5 text-gray-500"
+                    : "bg-gray-50 text-gray-400"
                 )}
               >
-                <td className="px-6 py-4">
-                  <div className="flex flex-col">
-                    <span
-                      className={cn(
-                        "font-bold",
-                        isDark ? "text-gray-200" : "text-gray-700"
-                      )}
-                    >
-                      Node ID
-                    </span>
-                    <span className="text-[11px] text-blue-500 font-mono font-bold uppercase tracking-tighter">
-                      {block.blockId}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span
+                <th className="px-8 py-5">Assignee Details</th>
+                <th className="px-8 py-5">Hardware Profile</th>
+                <th className="px-8 py-5">Manifest Date</th>
+                <th className="px-8 py-5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody
+              className={cn(
+                "divide-y",
+                isDark ? "divide-white/5" : "divide-gray-50"
+              )}
+            >
+              {paginated.length > 0 ? (
+                paginated.map((a) => (
+                  <tr
+                    key={a.id}
                     className={cn(
-                      "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                      block.name.toLowerCase() === "active"
-                        ? "bg-green-500/10 text-green-500"
-                        : block.name.toLowerCase() === "maintenance"
-                        ? "bg-yellow-500/10 text-yellow-500"
-                        : "bg-red-500/10 text-red-500"
+                      "text-sm transition-colors group",
+                      isDark ? "hover:bg-white/[0.02]" : "hover:bg-blue-50/30"
                     )}
                   >
-                    {block.name}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-yellow-500"
-                      onClick={() => setViewingBlock(block)}
-                    >
-                      <SquareArrowOutUpLeft size={14} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-blue-500"
-                      onClick={() => {
-                        setSelectedBlock(block);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      <Edit2 size={14} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-500"
-                      onClick={() => handleDeleteBlock(block.blockId)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 font-black text-xs">
+                          {a.userName.charAt(0)}
+                        </div>
+                        <div className="flex flex-col">
+                          <span
+                            className={cn(
+                              "font-black",
+                              isDark ? "text-gray-200" : "text-gray-900"
+                            )}
+                          >
+                            {a.userName}
+                          </span>
+                          <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                            {a.department}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col">
+                        <span
+                          className={cn(
+                            "font-black",
+                            isDark ? "text-gray-200" : "text-gray-900"
+                          )}
+                        >
+                          {a.assetName}
+                        </span>
+                        <span className="font-mono text-[10px] text-blue-500 font-black tracking-tighter uppercase">
+                          {a.assetId}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 font-mono text-[11px] text-gray-500 font-bold uppercase tracking-widest">
+                      {a.date}
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-blue-500"
+                          onClick={() => setViewingAlloc(a)}
+                        >
+                          <SquareArrowOutUpLeft size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-blue-500"
+                          onClick={() => {
+                            setSelectedAlloc(a);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-red-500"
+                          onClick={() => setRevokingId(a.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-8 py-20 text-center">
+                    <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                      No matching assignments found
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {/* Pagination */}
         <div
           className={cn(
-            "px-6 py-4 flex items-center justify-between border-t",
+            "px-8 py-5 flex items-center justify-between border-t",
             isDark
               ? "border-white/5 bg-white/5"
               : "border-gray-100 bg-gray-50/30"
           )}
         >
-          <span className="text-xs text-gray-500 font-mono">
-            PTR: {filteredBlocks.length} RECORDS
+          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic">
+            ACTIVE ASSIGNMENTS: {filteredAllocations.length}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-lg"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
               <ChevronLeft size={14} />
             </Button>
-            <span className="text-[10px] font-black w-12 text-center">
+            <span className="text-[11px] font-black font-mono">
               {currentPage} / {totalPages || 1}
             </span>
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-lg"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
@@ -483,117 +507,111 @@ const BlocksPage = () => {
         </div>
       </div>
 
-      {/* Side Drawer */}
-      {viewingBlock && (
-        <div className="fixed inset-0 z-100 flex justify-end">
+      {/* Detail Side Drawer */}
+      {viewingAlloc && (
+        <div className="fixed inset-0 z-[1000] flex justify-end">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-            onClick={() => setViewingBlock(null)}
+            className="absolute inset-0 bg-black/70 backdrop-blur-md animate-in fade-in"
+            onClick={() => setViewingAlloc(null)}
           />
           <aside
             className={cn(
-              "relative w-full max-w-lg h-full p-10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-right duration-300 overflow-y-auto border-l",
+              "relative w-full max-w-lg h-full p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
               isDark
                 ? "bg-[#0d0d12] border-white/10 text-white"
                 : "bg-white border-gray-200 text-gray-900"
             )}
           >
             <button
-              onClick={() => setViewingBlock(null)}
-              className="absolute top-6 right-6 text-slate-500 hover:text-red-500 transition-colors"
+              onClick={() => setViewingAlloc(null)}
+              className="absolute top-8 right-8 text-slate-500 hover:text-red-500 transition-colors"
             >
               <X size={24} />
             </button>
-            <header className="mb-10">
-              <span className="px-3 py-1 rounded-lg text-[10px] font-black border border-blue-500/50 text-blue-500 mb-4 inline-block tracking-widest">
-                BLOCK SPECIFICATIONS
+            <header className="mb-12 pt-6">
+              <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-blue-500/50 text-blue-500 mb-6 inline-block uppercase tracking-[0.2em]">
+                Assignment Profile
               </span>
               <h2 className="text-4xl font-black mb-2 tracking-tighter uppercase">
-                {viewingBlock.name}
+                {viewingAlloc.userName}
               </h2>
-              <div className="flex items-center gap-2 text-slate-400">
-                <School2Icon size={14} />
-                <span className="text-sm font-mono">
-                  {viewingBlock.blockId}
-                </span>
-              </div>
+              <p className="font-mono text-blue-500 text-sm font-black tracking-[0.1em] uppercase opacity-80">
+                {viewingAlloc.userId}
+              </p>
             </header>
 
             <section className="space-y-8">
               <div
                 className={cn(
-                  "rounded-2xl p-6 border",
+                  "rounded-3xl p-8 border shadow-inner",
                   isDark
                     ? "bg-white/5 border-white/5"
                     : "bg-gray-50 border-gray-100"
                 )}
               >
-                <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-4">
-                  Core Metadata
+                <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                  <Monitor size={16} /> Allocated Hardware
                 </h3>
-                <div className="grid grid-cols-2 gap-y-4 text-sm font-mono">
-                  <div className="text-slate-500 font-bold uppercase text-[10px]">
-                    Registry Status
+                <div className="grid grid-cols-2 gap-y-10 text-sm">
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Asset Descriptor
+                    </p>
+                    <p className="font-black text-lg">
+                      {viewingAlloc.assetName}
+                    </p>
                   </div>
-                  <div className="text-emerald-500 font-black tracking-widest">
-                    VERIFIED
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      System Serial
+                    </p>
+                    <p className="font-mono text-blue-500 font-black text-lg uppercase">
+                      {viewingAlloc.assetId}
+                    </p>
                   </div>
-                  <div className="text-slate-500 font-bold uppercase text-[10px]">
-                    Infrastructure
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Cost Center
+                    </p>
+                    <p className="font-black tracking-tight">
+                      {viewingAlloc.department}
+                    </p>
                   </div>
-                  <div>Primary Cluster</div>
-                  <div className="text-slate-500 font-bold uppercase text-[10px]">
-                    Last Checksum
-                  </div>
-                  <div className="text-blue-500 font-bold uppercase">
-                    {Math.random().toString(16).slice(2, 8)}
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Handover Date
+                    </p>
+                    <p className="font-mono font-black">{viewingAlloc.date}</p>
                   </div>
                 </div>
               </div>
 
-              <div
-                className={cn(
-                  "rounded-2xl p-6 border",
-                  isDark
-                    ? "bg-white/5 border-white/5"
-                    : "bg-gray-50 border-gray-100"
-                )}
-              >
-                <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Activity size={12} /> Live Telemetry
-                </h3>
-                <div className="space-y-4 font-mono text-xs">
-                  <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span className="text-slate-500 italic">Availability</span>
-                    <span className="text-emerald-500">99.9%</span>
-                  </div>
-                  <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span className="text-slate-500 italic">Runtime ID</span>
-                    <span>
-                      {viewingBlock.blockId.split("-")[1] ||
-                        viewingBlock.blockId}
-                    </span>
-                  </div>
-                </div>
+              <div className="pt-8 border-t border-white/5 space-y-4">
+                <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-blue-900/20">
+                  <ShieldCheck size={18} className="mr-3" /> Generate Handover
+                  Form
+                </Button>
+                <p className="text-[9px] text-center text-gray-500 font-black uppercase tracking-widest italic">
+                  Digital signatures will be requested upon generation
+                </p>
               </div>
-
-              <Button
-                variant="outline"
-                className="w-full justify-center border-red-500/20 text-red-500 hover:bg-red-500/10 font-black uppercase text-[10px] tracking-widest py-6"
-              >
-                Deactivate System Node
-              </Button>
             </section>
           </aside>
         </div>
       )}
 
       {/* Modals */}
-      <BlockModal
+      <AllocationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveBlock}
-        initialData={selectedBlock}
+        onSave={handleSave}
+        initialData={selectedAlloc}
+        isDark={isDark}
+      />
+      <TransfersModal
+        isOpen={isTransferOpen}
+        onClose={() => setIsTransferOpen(false)}
+        onSave={() => setIsTransferOpen(false)}
         isDark={isDark}
       />
     </Layout>

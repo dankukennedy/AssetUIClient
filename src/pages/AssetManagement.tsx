@@ -6,16 +6,17 @@ import {
   Edit2,
   Trash2,
   Search,
-  Filter,
-  SquareArrowOutUpLeft,
   ChevronLeft,
   ChevronRight,
   X,
-  Cpu,
-  Calendar,
-  User,
-  Download,
+  Monitor,
   CheckCircle2,
+  SquareArrowOutUpLeft,
+  ShieldCheck,
+  Download,
+  AlertOctagon,
+  Loader2,
+  Filter,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
@@ -31,17 +32,20 @@ const AssetManagement = () => {
 
   // --- States ---
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
 
-  // Toast State
-  const [showToast, setShowToast] = useState(false);
-  const [toastMeta, setToastMeta] = useState({ title: "", sub: "" });
+  // Custom Purge States
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const itemsPerPage = 5;
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState({ title: "", sub: "" });
+
+  const itemsPerPage = 6;
 
   const [assets, setAssets] = useState<Asset[]>([
     {
@@ -50,7 +54,7 @@ const AssetManagement = () => {
       type: "Laptop",
       status: "Active",
       purchaseDate: "2023-10-12",
-      assignedTo: "Edem",
+      assignedTo: "Edem Quist",
     },
     {
       id: "AST-002",
@@ -66,43 +70,58 @@ const AssetManagement = () => {
       status: "Active",
       assignedTo: "Sarah Smith",
     },
-    {
-      id: "AST-004",
-      name: "Logitech Mouse",
-      type: "Peripheral",
-      status: "Retired",
-    },
-    { id: "AST-005", name: "iPad Air", type: "Tablet", status: "Active" },
-    { id: "AST-006", name: "ThinkPad X1", type: "Laptop", status: "Active" },
   ]);
 
-  // --- Helper: Trigger Toast ---
+  // Derived unique statuses for filter
+  const statusOptions = useMemo(() => {
+    const statuses = new Set(assets.map((a) => a.status));
+    return ["All Statuses", ...Array.from(statuses)];
+  }, [assets]);
+
+  // --- Logic: Trigger Toast ---
   const triggerToast = (title: string, sub: string) => {
-    setToastMeta({ title, sub });
+    setToastMessage({ title, sub });
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  // --- Logic: CSV Download ---
+  // --- Handlers ---
+  const handleSave = (data: Asset) => {
+    if (selectedAsset) {
+      setAssets(assets.map((a) => (a.id === selectedAsset.id ? data : a)));
+      triggerToast("Registry Updated", "Hardware index synchronized");
+    } else {
+      setAssets([data, ...assets]);
+      triggerToast("Asset Registered", "New hardware added to inventory");
+    }
+    setIsModalOpen(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    setAssets(assets.filter((a) => a.id !== deleteId));
+    triggerToast("Record Purged", `Asset ${deleteId} removed from registry`);
+
+    setDeleteId(null);
+    setIsDeleting(false);
+    if (viewingAsset?.id === deleteId) setViewingAsset(null);
+  };
+
   const downloadCSV = () => {
-    const headers = [
-      "ID",
-      "Name",
-      "Type",
-      "Status",
-      "Purchase Date",
-      "Assigned To",
-    ];
+    const headers = ["ID", "Name", "Type", "Status", "Date", "Custodian"];
     const csvContent = [
       headers.join(","),
-      ...assets.map((asset) =>
+      ...assets.map((a) =>
         [
-          asset.id,
-          `"${asset.name}"`,
-          asset.type,
-          asset.status,
-          asset.purchaseDate || "N/A",
-          `"${asset.assignedTo || "Unassigned"}"`,
+          a.id,
+          `"${a.name}"`,
+          a.type,
+          a.status,
+          a.purchaseDate || "N/A",
+          `"${a.assignedTo || "Unassigned"}"`,
         ].join(",")
       ),
     ].join("\n");
@@ -110,81 +129,100 @@ const AssetManagement = () => {
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `asset_inventory_${new Date().toISOString().split("T")[0]}.csv`
-    );
+    link.href = url;
+    link.setAttribute("download", `asset_registry_${new Date().getTime()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    triggerToast("Export Successful", "CSV file generated and downloaded");
+    triggerToast("Export Successful", "Hardware database saved to CSV");
   };
 
-  // --- Logic: Search & Filter ---
+  // --- Logic: Search & Pagination ---
   const filteredAssets = useMemo(() => {
-    return assets.filter((asset) => {
+    return assets.filter((a) => {
       const matchesSearch =
-        asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        asset.id.toLowerCase().includes(searchTerm.toLowerCase());
+        a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (a.assignedTo?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+
       const matchesStatus =
-        statusFilter === "All" || asset.status === statusFilter;
+        statusFilter === "All Statuses" || a.status === statusFilter;
+
       return matchesSearch && matchesStatus;
     });
   }, [searchTerm, statusFilter, assets]);
 
   const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedAssets = filteredAssets.slice(
-    startIndex,
-    startIndex + itemsPerPage
+  const paginated = filteredAssets.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
-  // --- Handlers ---
-  const handleSaveAsset = (assetData: Asset) => {
-    if (selectedAsset) {
-      setAssets(assets.map((a) => (a.id === selectedAsset.id ? assetData : a)));
-      triggerToast("Registry Updated", `${assetData.id} parameters modified`);
-    } else {
-      setAssets([assetData, ...assets]);
-      triggerToast("Asset Created", `New ${assetData.type} added to inventory`);
-    }
-    setIsModalOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    if (
-      window.confirm("CRITICAL: Permanent removal of asset record. Proceed?")
-    ) {
-      setAssets(assets.filter((a) => a.id !== id));
-      triggerToast("Record Purged", `Asset ${id} removed from system`);
-    }
-  };
-
   return (
-    <Layout title="Asset Management" icon={Box}>
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed bottom-10 right-10 z-[300] animate-in slide-in-from-bottom-5 fade-in duration-300">
+    <Layout title="Asset Registry" icon={Box}>
+      {/* 1. PURGE CONFIRMATION MODAL */}
+      {deleteId && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div
             className={cn(
-              "flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border",
+              "p-8 rounded-[2.5rem] border max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95",
+              isDark
+                ? "bg-[#0d0d12] border-white/10"
+                : "bg-white border-gray-200"
+            )}
+          >
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertOctagon className="text-red-500" size={32} />
+            </div>
+            <h3 className="text-xl font-black mb-2 tracking-tighter uppercase text-red-500">
+              Purge Record?
+            </h3>
+            <p className="text-[10px] text-gray-500 mb-8 font-mono tracking-widest uppercase">
+              Permanently removing asset: {deleteId}
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="ghost"
+                className="flex-1 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+                disabled={isDeleting}
+                onClick={() => setDeleteId(null)}
+              >
+                Abort
+              </Button>
+              <Button
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  "Confirm"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-10 right-10 z-[400] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div
+            className={cn(
+              "flex items-center gap-4 px-8 py-5 rounded-[2rem] shadow-2xl border",
               isDark
                 ? "bg-[#111118] border-blue-500/50 text-blue-400"
                 : "bg-white border-blue-100 text-blue-600"
             )}
           >
-            <CheckCircle2
-              size={20}
-              className={isDark ? "text-blue-400" : "text-blue-600"}
-            />
+            <CheckCircle2 size={20} />
             <div className="flex flex-col">
-              <span className="text-sm font-black tracking-tight">
-                {toastMeta.title}
+              <span className="text-sm font-black uppercase tracking-tight">
+                {toastMessage.title}
               </span>
-              <span className="text-[10px] opacity-70 uppercase tracking-widest font-bold">
-                {toastMeta.sub}
+              <span className="text-[10px] opacity-70 uppercase font-bold tracking-[0.2em]">
+                {toastMessage.sub}
               </span>
             </div>
           </div>
@@ -196,57 +234,55 @@ const AssetManagement = () => {
         <div>
           <h2
             className={cn(
-              "text-2xl font-black tracking-tight",
+              "text-2xl font-black tracking-tight uppercase",
               isDark ? "text-white" : "text-gray-900"
             )}
           >
-            Asset Registry
+            Hardware Index
           </h2>
-          <p className="text-sm text-gray-500">
-            Inventory and Lifecycle Management
+          <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+            Managing corporate lifecycle and hardware inventory
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex gap-3">
           <Button
             variant="outline"
-            className="flex items-center gap-2 border-slate-700/50 hover:bg-slate-500/10 font-black uppercase text-[10px] tracking-widest h-11"
             onClick={downloadCSV}
+            className="h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
           >
-            <Download size={16} /> Export CSV
+            <Download size={16} className="mr-2" /> Export CSV
           </Button>
           <Button
-            className="flex items-center gap-2 shadow-lg shadow-blue-500/20 font-black uppercase text-[10px] tracking-widest h-11"
             onClick={() => {
               setSelectedAsset(null);
               setIsModalOpen(true);
             }}
+            className="h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
           >
-            <Plus size={16} /> Add Asset
+            <Plus size={16} className="mr-2" /> Register Asset
           </Button>
         </div>
       </div>
 
-      {/* Toolbar */}
+      {/* Search & Filter Bar */}
       <div
         className={cn(
-          "p-4 rounded-xl mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm",
-          isDark
-            ? "bg-[#111118] border border-white/5"
-            : "bg-white border border-gray-100"
+          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col md:flex-row gap-4 items-center",
+          isDark ? "bg-[#111118] border-white/5" : "bg-white border-gray-100"
         )}
       >
-        <div className="relative w-full md:w-96">
+        <div className="relative flex-1 w-full">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
             size={18}
           />
           <input
-            placeholder="Filter hardware by ID or Name..."
+            placeholder="Search by name, ID, or custodian..."
             className={cn(
-              "w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none transition-all",
+              "w-full pl-12 pr-4 py-3 rounded-xl text-sm outline-none transition-all",
               isDark
                 ? "bg-black/20 border-white/10 text-white focus:border-blue-500/50"
-                : "bg-gray-50 border-gray-200 focus:border-blue-400"
+                : "bg-gray-50 border-gray-200"
             )}
             value={searchTerm}
             onChange={(e) => {
@@ -255,33 +291,45 @@ const AssetManagement = () => {
             }}
           />
         </div>
-        <select
-          className={cn(
-            "px-3 py-2 rounded-lg text-sm outline-none w-full md:w-48 cursor-pointer",
-            isDark
-              ? "bg-black/20 border border-white/10 text-white font-bold"
-              : "bg-gray-50 border border-gray-200 font-bold"
-          )}
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="All">All Statuses</option>
-          <option value="Active">Active</option>
-          <option value="In Repair">In Repair</option>
-          <option value="Retired">Retired</option>
-        </select>
+
+        <div className="relative w-full md:w-64">
+          <Filter
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            size={16}
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className={cn(
+              "w-full pl-10 pr-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none transition-all appearance-none cursor-pointer",
+              isDark
+                ? "bg-black/20 border-white/10 text-white focus:border-blue-500/50"
+                : "bg-gray-50 border-gray-200 text-gray-700"
+            )}
+          >
+            {statusOptions.map((opt) => (
+              <option
+                key={opt}
+                value={opt}
+                className={isDark ? "bg-[#0d0d12]" : "bg-white"}
+              >
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* Table Content */}
       <div
         className={cn(
-          "rounded-xl border transition-all overflow-hidden",
+          "rounded-[2rem] border overflow-hidden",
           isDark
             ? "border-white/5 bg-[#111118]"
-            : "border-gray-100 bg-white shadow-sm"
+            : "bg-white shadow-sm border-gray-100"
         )}
       >
         <div className="overflow-x-auto">
@@ -289,16 +337,16 @@ const AssetManagement = () => {
             <thead>
               <tr
                 className={cn(
-                  "text-[10px] uppercase tracking-widest font-black",
+                  "text-[10px] uppercase tracking-[0.2em] font-black",
                   isDark
-                    ? "bg-white/5 text-gray-400"
-                    : "bg-gray-50 text-gray-500"
+                    ? "bg-white/5 text-gray-500"
+                    : "bg-gray-50 text-gray-400"
                 )}
               >
-                <th className="px-6 py-4">ID</th>
-                <th className="px-6 py-4">Hardware</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-8 py-5">Registry ID</th>
+                <th className="px-8 py-5">Hardware Profile</th>
+                <th className="px-8 py-5">Status</th>
+                <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody
@@ -307,112 +355,122 @@ const AssetManagement = () => {
                 isDark ? "divide-white/5" : "divide-gray-50"
               )}
             >
-              {paginatedAssets.map((asset) => (
-                <tr
-                  key={asset.id}
-                  className={cn(
-                    "text-sm transition-colors",
-                    isDark ? "hover:bg-white/5" : "hover:bg-blue-50/50"
-                  )}
-                >
-                  <td className="px-6 py-4 font-mono text-xs text-blue-500 font-bold tracking-tighter">
-                    {asset.id}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
+              {paginated.length > 0 ? (
+                paginated.map((asset) => (
+                  <tr
+                    key={asset.id}
+                    className={cn(
+                      "text-sm transition-colors group",
+                      isDark ? "hover:bg-white/[0.02]" : "hover:bg-blue-50/30"
+                    )}
+                  >
+                    <td className="px-8 py-5 font-mono text-[11px] text-blue-500 font-black tracking-tighter uppercase">
+                      {asset.id}
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col">
+                        <span
+                          className={cn(
+                            "font-black",
+                            isDark ? "text-gray-200" : "text-gray-900"
+                          )}
+                        >
+                          {asset.name}
+                        </span>
+                        <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                          {asset.type}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
                       <span
                         className={cn(
-                          "font-bold",
-                          isDark ? "text-gray-200" : "text-gray-700"
+                          "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                          asset.status === "Active"
+                            ? "bg-green-500/10 text-green-500"
+                            : asset.status === "In Repair"
+                            ? "bg-amber-500/10 text-amber-500"
+                            : "bg-red-500/10 text-red-500"
                         )}
                       >
-                        {asset.name}
+                        {asset.status}
                       </span>
-                      <span className="text-[10px] text-gray-500 uppercase font-black">
-                        {asset.type}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={cn(
-                        "px-2.5 py-1 rounded-full text-[10px] font-black uppercase",
-                        asset.status === "Active"
-                          ? "bg-green-500/10 text-green-500"
-                          : asset.status === "In Repair"
-                          ? "bg-orange-500/10 text-orange-500"
-                          : "bg-red-500/10 text-red-500"
-                      )}
-                    >
-                      {asset.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-yellow-500"
-                        onClick={() => setViewingAsset(asset)}
-                      >
-                        <SquareArrowOutUpLeft size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-blue-500"
-                        onClick={() => {
-                          setSelectedAsset(asset);
-                          setIsModalOpen(true);
-                        }}
-                      >
-                        <Edit2 size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:text-red-600"
-                        onClick={() => handleDelete(asset.id)}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-blue-500"
+                          onClick={() => setViewingAsset(asset)}
+                        >
+                          <SquareArrowOutUpLeft size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-blue-500"
+                          onClick={() => {
+                            setSelectedAsset(asset);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-red-500"
+                          onClick={() => setDeleteId(asset.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-8 py-20 text-center">
+                    <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                      No matching hardware records found
+                    </p>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* Pagination */}
         <div
           className={cn(
-            "px-6 py-4 flex items-center justify-between border-t",
+            "px-8 py-5 flex items-center justify-between border-t",
             isDark
               ? "border-white/5 bg-white/5"
               : "border-gray-100 bg-gray-50/30"
           )}
         >
-          <span className="text-xs text-gray-500 font-mono italic">
-            INV: {filteredAssets.length} UNITS
+          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic">
+            TOTAL UNITS: {filteredAssets.length}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-lg"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
               <ChevronLeft size={14} />
             </Button>
-            <span className="text-[10px] font-black w-12 text-center">
+            <span className="text-[11px] font-black font-mono">
               {currentPage} / {totalPages || 1}
             </span>
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-lg"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
@@ -422,16 +480,16 @@ const AssetManagement = () => {
         </div>
       </div>
 
-      {/* --- SIDE DETAILS DRAWER --- */}
+      {/* Detail Side Drawer */}
       {viewingAsset && (
-        <div className="fixed inset-0 z-[150] flex justify-end">
+        <div className="fixed inset-0 z-[1000] flex justify-end">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md animate-in fade-in"
             onClick={() => setViewingAsset(null)}
           />
           <aside
             className={cn(
-              "relative w-full max-w-lg h-full p-10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-right duration-300 overflow-y-auto border-l",
+              "relative w-full max-w-lg h-full p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
               isDark
                 ? "bg-[#0d0d12] border-white/10 text-white"
                 : "bg-white border-gray-200 text-gray-900"
@@ -439,18 +497,18 @@ const AssetManagement = () => {
           >
             <button
               onClick={() => setViewingAsset(null)}
-              className="absolute top-6 right-6 text-slate-500 hover:text-red-500 transition-colors"
+              className="absolute top-8 right-8 text-slate-500 hover:text-red-500 transition-colors"
             >
               <X size={24} />
             </button>
-            <header className="mb-10">
-              <span className="px-3 py-1 rounded-lg text-[10px] font-black border border-blue-500/50 text-blue-500 mb-4 inline-block tracking-widest">
-                {viewingAsset.type.toUpperCase()}
+            <header className="mb-12 pt-6">
+              <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-blue-500/50 text-blue-500 mb-6 inline-block uppercase tracking-[0.2em]">
+                Hardware Profile
               </span>
               <h2 className="text-4xl font-black mb-2 tracking-tighter uppercase">
                 {viewingAsset.name}
               </h2>
-              <p className="font-mono text-blue-500 text-sm font-bold uppercase tracking-widest">
+              <p className="font-mono text-blue-500 text-sm font-black tracking-[0.1em] uppercase opacity-80">
                 {viewingAsset.id}
               </p>
             </header>
@@ -458,54 +516,68 @@ const AssetManagement = () => {
             <section className="space-y-8">
               <div
                 className={cn(
-                  "rounded-2xl p-6 border",
+                  "rounded-3xl p-8 border shadow-inner",
                   isDark
-                    ? "bg-white/5 border-white/5 shadow-inner"
-                    : "bg-gray-50 border-gray-100 shadow-inner"
+                    ? "bg-white/5 border-white/5"
+                    : "bg-gray-50 border-gray-100"
                 )}
               >
-                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4">
-                  Hardware Profile
+                <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                  <Monitor size={16} /> Asset Details
                 </h3>
-                <div className="grid grid-cols-2 gap-y-6 text-sm">
+                <div className="grid grid-cols-2 gap-y-10 text-sm">
                   <div>
-                    <p className="text-slate-500 font-black uppercase text-[9px] tracking-widest mb-1">
-                      Purchase Manifest
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Device Category
                     </p>
-                    <p className="font-mono font-bold">
-                      {viewingAsset.purchaseDate || "UNTRACKED"}
+                    <p className="font-black text-lg">{viewingAsset.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Current Status
+                    </p>
+                    <p className="font-black text-lg uppercase tracking-tight text-blue-500">
+                      {viewingAsset.status}
                     </p>
                   </div>
                   <div>
-                    <p className="text-slate-500 font-black uppercase text-[9px] tracking-widest mb-1">
-                      Custodian
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Current Custodian
                     </p>
-                    <p className="flex items-center gap-2 font-bold">
-                      <User size={14} className="text-blue-500" />{" "}
+                    <p className="font-black tracking-tight">
                       {viewingAsset.assignedTo || "UNASSIGNED"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Registration Date
+                    </p>
+                    <p className="font-mono font-black">
+                      {viewingAsset.purchaseDate || "N/A"}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-white/5">
-                <Button
-                  variant="outline"
-                  className="w-full justify-center border-red-500/20 text-red-500 hover:bg-red-500/10 font-black text-[10px] uppercase tracking-widest h-12"
-                >
-                  Flag Security Incident
+              <div className="pt-8 border-t border-white/5 space-y-4">
+                <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-blue-900/20">
+                  <ShieldCheck size={18} className="mr-3" /> Audit Compliance
+                  Log
                 </Button>
+                <p className="text-[9px] text-center text-gray-500 font-black uppercase tracking-widest italic">
+                  Registry synchronization log available upon request
+                </p>
               </div>
             </section>
           </aside>
         </div>
       )}
 
-      {/* Modal */}
+      {/* Asset Modal */}
       <AssetModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveAsset}
+        onSave={handleSave}
         initialData={selectedAsset}
         isDark={isDark}
       />

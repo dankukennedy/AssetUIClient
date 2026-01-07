@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard';
 import AssetManagement from './pages/AssetManagement';
 import Department from './pages/Departments';
 import Block from './pages/Blocks';
-import Users from './pages/Users';
+import Users from './pages/AuthUsers';
 import Settings from './pages/Settings';
 import AccountSettings from './pages/AccountSettings';
 import { ThemeProvider } from './component/theme-provider';
@@ -17,6 +17,8 @@ import Disposal from './pages/Disposals';
 import AllocationManagement from './pages/Allocation';
 import Reports from './pages/Reports';
 import { ToastProvider } from './context/ToastContext';
+import AssetUsersPage from './pages/AssetUsers';
+import AuthUsersPage from './pages/AuthUsers';
 
 
 
@@ -32,12 +34,14 @@ const App = () => {
             <Route path="/assets" element={<AssetManagement />} />
             <Route path="/departments" element={<Department />} />
             <Route path="/blocks" element={<Block />} />
-            <Route path="/assetUsers" element={<Users />} />
+            <Route path="/assetUsers" element={<AssetUsersPage />} />
+            <Route path="/authUsers" element={<AuthUsersPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/account-settings" element={<AccountSettings />} />
             <Route path="/transfers" element={<Transfers />} />
             <Route path="/decommission" element={<Decommission />} />
             <Route path="/disposal" element={<Disposal />} />
+            <Route path="/allocation" element={<AllocationManagement />} />
             <Route path="/allocation" element={<AllocationManagement />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/allocations" element={<AllocationManagement />} />

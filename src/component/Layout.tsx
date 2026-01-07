@@ -98,7 +98,7 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             icon={ShieldCheck} 
             label="Administration" 
             subItems={[
-              { label: 'Users', icon: UserPlus, path: '/users' },
+              { label: 'AuthUsers', icon: UserPlus, path: '/authUsers' },
               { label: 'Settings', icon: Settings, path: '/settings' },
               { label: 'My Profile', icon: UserCircle, path: '/account-settings' }
             ]}
