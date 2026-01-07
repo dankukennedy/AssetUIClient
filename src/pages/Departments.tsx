@@ -77,7 +77,7 @@ const DepartmentModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
         className={cn(
           "w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border animate-in zoom-in-95",
@@ -134,7 +134,6 @@ const DepartmentModal = ({
             <input
               required
               type="text"
-              autoFocus
               className={cn(
                 "w-full px-5 py-3 rounded-2xl border outline-none focus:ring-2 ring-emerald-500/20 transition-all",
                 isDark
@@ -153,7 +152,7 @@ const DepartmentModal = ({
             </label>
             <select
               className={cn(
-                "w-full px-5 py-3 rounded-2xl border outline-none focus:ring-2 ring-emerald-500/20 appearance-none transition-all",
+                "w-full px-5 py-3 rounded-2xl border outline-none appearance-none transition-all",
                 isDark
                   ? "bg-black/20 border-white/10 text-white"
                   : "bg-gray-50 border-gray-200"
@@ -184,7 +183,6 @@ const DepartmentModal = ({
               Abort
             </Button>
             <Button
-              variant="default"
               type="submit"
               className="text-[10px] font-black uppercase tracking-[0.15em] rounded-xl px-8 shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 text-white"
             >
@@ -240,12 +238,6 @@ const DepartmentsPage = () => {
     },
   ]);
 
-  // Derived block options for filter
-  const blockOptions = useMemo(() => {
-    const blocks = new Set(departments.map((d) => d.blockId));
-    return ["All Blocks", ...Array.from(blocks)];
-  }, [departments]);
-
   const triggerToast = (title: string, sub: string) => {
     setToastMessage({ title, sub });
     setShowToast(true);
@@ -259,10 +251,10 @@ const DepartmentsPage = () => {
           d.departmentId === selectedDept.departmentId ? data : d
         )
       );
-      triggerToast("Registry Updated", "Sector configuration synchronized");
+      triggerToast("Sector Updated", "Infrastructure parameters synchronized");
     } else {
       setDepartments([data, ...departments]);
-      triggerToast("Sector Initialized", "New department committed to core");
+      triggerToast("Sector Authorized", "New department integrated into grid");
     }
     setIsModalOpen(false);
   };
@@ -271,38 +263,16 @@ const DepartmentsPage = () => {
     if (!deleteId) return;
     setIsDeleting(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
+
     setDepartments(departments.filter((d) => d.departmentId !== deleteId));
-    triggerToast("Record Purged", `Sector ${deleteId} removed from registry`);
+    triggerToast(
+      "Sector Purged",
+      `Department ${deleteId} removed from registry`
+    );
+
     setDeleteId(null);
     setIsDeleting(false);
     if (viewingDept?.departmentId === deleteId) setViewingDept(null);
-  };
-
-  const downloadCSV = () => {
-    const headers = [
-      "Sector Name",
-      "Department ID",
-      "Block Location",
-      "Auth User",
-    ];
-    const csvContent = [
-      headers.join(","),
-      ...departments.map((d) =>
-        [`"${d.name}"`, d.departmentId, d.blockId, d.userId].join(",")
-      ),
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `sector_registry_${new Date().getTime()}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    triggerToast("Export Successful", "Registry database saved to CSV");
   };
 
   const filtered = useMemo(() => {
@@ -325,8 +295,8 @@ const DepartmentsPage = () => {
   );
 
   return (
-    <Layout title="Sector Registry" icon={UsersIcon}>
-      {/* PURGE MODAL & TOAST REMAIN THE SAME... */}
+    <Layout title="Department Matrix" icon={Building2}>
+      {/* 1. DELETE MODAL */}
       {deleteId && (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div
@@ -344,7 +314,7 @@ const DepartmentsPage = () => {
               Purge Sector?
             </h3>
             <p className="text-[10px] text-gray-500 mb-8 font-mono tracking-widest uppercase">
-              Permanently deauthorizing: {deleteId}
+              Decommissioning: {deleteId}
             </p>
             <div className="flex gap-3">
               <Button
@@ -371,6 +341,7 @@ const DepartmentsPage = () => {
         </div>
       )}
 
+      {/* 2. TOAST NOTIFICATION */}
       {showToast && (
         <div className="fixed bottom-10 right-10 z-[400] animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div
@@ -394,8 +365,8 @@ const DepartmentsPage = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      {/* 3. HEADER */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
         <div>
           <h2
             className={cn(
@@ -403,36 +374,35 @@ const DepartmentsPage = () => {
               isDark ? "text-white" : "text-gray-900"
             )}
           >
-            Sector Control
+            Sector Registry
           </h2>
           <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-            Managing department access and hierarchy
+            Managing corporate infrastructure and block assignments
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
-            onClick={downloadCSV}
-            className="h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
           >
-            <Download size={16} className="mr-2" /> Export CSV
+            <Download size={16} className="mr-2" /> Export Grid
           </Button>
           <Button
             onClick={() => {
               setSelectedDept(null);
               setIsModalOpen(true);
             }}
-            className="h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="flex-1 sm:flex-none h-12 rounded-xl font-black text-[10px] uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
           >
-            <Plus size={16} className="mr-2" /> New Sector
+            <Plus size={16} className="mr-2" /> New Department
           </Button>
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
+      {/* 4. SEARCH & FILTERS */}
       <div
         className={cn(
-          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col md:flex-row gap-4 items-center",
+          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col lg:flex-row gap-4 items-center",
           isDark ? "bg-[#111118] border-white/5" : "bg-white border-gray-100"
         )}
       >
@@ -442,7 +412,7 @@ const DepartmentsPage = () => {
             size={18}
           />
           <input
-            placeholder="Search by sector name or ID..."
+            placeholder="Search by ID or Sector name..."
             className={cn(
               "w-full pl-12 pr-4 py-3 rounded-xl text-sm outline-none transition-all",
               isDark
@@ -457,7 +427,7 @@ const DepartmentsPage = () => {
           />
         </div>
 
-        <div className="relative w-full md:w-64">
+        <div className="relative w-full lg:w-64">
           <Filter
             className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
             size={16}
@@ -475,7 +445,7 @@ const DepartmentsPage = () => {
                 : "bg-gray-50 border-gray-200 text-gray-700"
             )}
           >
-            {blockOptions.map((opt) => (
+            {["All Blocks", ...BLOCKS].map((opt) => (
               <option
                 key={opt}
                 value={opt}
@@ -488,7 +458,7 @@ const DepartmentsPage = () => {
         </div>
       </div>
 
-      {/* Table & Side Drawer Logic (Same as before) */}
+      {/* 5. RESPONSIVE LIST CONTENT */}
       <div
         className={cn(
           "rounded-[2rem] border overflow-hidden",
@@ -497,7 +467,8 @@ const DepartmentsPage = () => {
             : "bg-white shadow-sm border-gray-100"
         )}
       >
-        <div className="overflow-x-auto">
+        {/* DESKTOP VIEW */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr
@@ -508,9 +479,9 @@ const DepartmentsPage = () => {
                     : "bg-gray-50 text-gray-400"
                 )}
               >
-                <th className="px-8 py-5">Identity UID</th>
+                <th className="px-8 py-5">System UID</th>
                 <th className="px-8 py-5">Sector Name</th>
-                <th className="px-8 py-5">Block Location</th>
+                <th className="px-8 py-5">Allocation</th>
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
@@ -521,28 +492,37 @@ const DepartmentsPage = () => {
               )}
             >
               {paginated.length > 0 ? (
-                paginated.map((d) => (
+                paginated.map((dept) => (
                   <tr
-                    key={d.departmentId}
+                    key={dept.departmentId}
                     className={cn(
                       "text-sm transition-colors group",
-                      isDark ? "hover:bg-white/[0.02]" : "hover:bg-blue-50/30"
+                      isDark
+                        ? "hover:bg-white/[0.02]"
+                        : "hover:bg-emerald-50/30"
                     )}
                   >
                     <td className="px-8 py-5 font-mono text-[11px] text-emerald-500 font-black tracking-tighter uppercase">
-                      {d.departmentId}
-                    </td>
-                    <td
-                      className={cn(
-                        "px-8 py-5 font-black uppercase tracking-tight",
-                        isDark ? "text-gray-200" : "text-gray-900"
-                      )}
-                    >
-                      {d.name}
+                      {dept.departmentId}
                     </td>
                     <td className="px-8 py-5">
-                      <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                        {d.blockId}
+                      <div className="flex flex-col">
+                        <span
+                          className={cn(
+                            "font-black uppercase",
+                            isDark ? "text-gray-200" : "text-gray-900"
+                          )}
+                        >
+                          {dept.name}
+                        </span>
+                        <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                          Lead: {dept.userId}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className="px-3 py-1 rounded-full text-[9px] font-black bg-emerald-500/10 text-emerald-500 uppercase tracking-widest">
+                        {dept.blockId}
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">
@@ -551,7 +531,7 @@ const DepartmentsPage = () => {
                           variant="ghost"
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-emerald-500"
-                          onClick={() => setViewingDept(d)}
+                          onClick={() => setViewingDept(dept)}
                         >
                           <SquareArrowOutUpLeft size={14} />
                         </Button>
@@ -560,7 +540,7 @@ const DepartmentsPage = () => {
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-emerald-500"
                           onClick={() => {
-                            setSelectedDept(d);
+                            setSelectedDept(dept);
                             setIsModalOpen(true);
                           }}
                         >
@@ -570,7 +550,7 @@ const DepartmentsPage = () => {
                           variant="ghost"
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-red-500"
-                          onClick={() => setDeleteId(d.departmentId)}
+                          onClick={() => setDeleteId(dept.departmentId)}
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -584,7 +564,7 @@ const DepartmentsPage = () => {
                     colSpan={4}
                     className="px-8 py-20 text-center text-xs font-mono text-gray-500 uppercase tracking-widest"
                   >
-                    No matching sectors in registry
+                    No matching sector records found
                   </td>
                 </tr>
               )}
@@ -592,22 +572,85 @@ const DepartmentsPage = () => {
           </table>
         </div>
 
+        {/* MOBILE VIEW */}
+        <div className="md:hidden divide-y divide-white/5">
+          {paginated.length > 0 ? (
+            paginated.map((dept) => (
+              <div key={dept.departmentId} className="p-6 flex flex-col gap-5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-mono text-[10px] text-emerald-500 font-black tracking-tighter uppercase mb-1">
+                      {dept.departmentId}
+                    </p>
+                    <h4
+                      className={cn(
+                        "font-black text-lg uppercase",
+                        isDark ? "text-white" : "text-gray-900"
+                      )}
+                    >
+                      {dept.name}
+                    </h4>
+                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                      Admin: {dept.userId}
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[9px] font-black bg-emerald-500/10 text-emerald-500 uppercase tracking-widest">
+                    {dept.blockId}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    onClick={() => setViewingDept(dept)}
+                  >
+                    Matrix
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    onClick={() => {
+                      setSelectedDept(dept);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    Config
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 text-red-500/50 hover:text-red-500"
+                    onClick={() => setDeleteId(dept.departmentId)}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-20 text-center text-xs font-mono text-gray-500 uppercase tracking-widest">
+              No sector records online
+            </div>
+          )}
+        </div>
+
+        {/* PAGINATION */}
         <div
           className={cn(
-            "px-8 py-5 flex items-center justify-between border-t",
+            "px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t",
             isDark
               ? "border-white/5 bg-white/5"
               : "border-gray-100 bg-gray-50/30"
           )}
         >
           <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic">
-            REGISTERED SECTORS: {filtered.length}
+            ACTIVE SECTORS: {filtered.length}
           </span>
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
@@ -619,7 +662,7 @@ const DepartmentsPage = () => {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
@@ -629,7 +672,7 @@ const DepartmentsPage = () => {
         </div>
       </div>
 
-      {/* Side Drawer and Modal components stay the same as previous response */}
+      {/* 6. DETAIL SIDE DRAWER */}
       {viewingDept && (
         <div className="fixed inset-0 z-[1000] flex justify-end">
           <div
@@ -638,7 +681,7 @@ const DepartmentsPage = () => {
           />
           <aside
             className={cn(
-              "relative w-full max-w-lg h-full p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
+              "relative w-full max-w-lg h-full p-8 md:p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
               isDark
                 ? "bg-[#0d0d12] border-white/10 text-white"
                 : "bg-white border-gray-200 text-gray-900"
@@ -651,51 +694,48 @@ const DepartmentsPage = () => {
               <X size={24} />
             </button>
             <header className="mb-12 pt-6">
-              <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-emerald-500/50 text-emerald-400 mb-6 inline-block uppercase tracking-[0.2em]">
+              <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-emerald-500/50 text-emerald-500 mb-6 inline-block uppercase tracking-[0.2em]">
                 Sector Profile
               </span>
-              <h2 className="text-4xl font-black mb-2 tracking-tighter uppercase">
+              <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tighter uppercase">
                 {viewingDept.name}
               </h2>
-              <p className="font-mono text-emerald-500 text-sm font-black tracking-[0.1em] uppercase opacity-80">
+              <p className="font-mono text-emerald-500 text-sm font-black uppercase">
                 {viewingDept.departmentId}
               </p>
             </header>
             <section className="space-y-8">
               <div
                 className={cn(
-                  "rounded-3xl p-8 border shadow-inner",
+                  "rounded-3xl p-6 md:p-8 border shadow-inner",
                   isDark
                     ? "bg-white/5 border-white/5"
                     : "bg-gray-50 border-gray-100"
                 )}
               >
-                <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
-                  <Building2 size={16} /> Technical Details
+                <h3 className="text-[10px] font-black text-emerald-400 uppercase mb-8 flex items-center gap-3">
+                  <UsersIcon size={16} /> Hierarchy Data
                 </h3>
-                <div className="grid grid-cols-2 gap-y-10 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10">
                   <div>
-                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      Location Block
+                    <p className="text-gray-500 font-black uppercase text-[9px] mb-2">
+                      Lead Administrator
                     </p>
-                    <p className="font-black text-lg">{viewingDept.blockId}</p>
+                    <p className="font-black text-lg">{viewingDept.userId}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      Management Signature
+                    <p className="text-gray-500 font-black uppercase text-[9px] mb-2">
+                      Block Allocation
                     </p>
-                    <p className="font-black tracking-tight">
-                      {viewingDept.userId}
+                    <p className="font-black text-lg uppercase text-emerald-500">
+                      {viewingDept.blockId}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="pt-8 border-t border-white/5 space-y-4">
-                <Button className="w-full justify-center bg-emerald-600 hover:bg-emerald-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-emerald-900/20 text-white">
-                  <ShieldCheck size={18} className="mr-3" /> Audit Compliance
-                  Log
-                </Button>
-              </div>
+              <Button className="w-full justify-center bg-emerald-600 hover:bg-emerald-700 font-black text-[10px] uppercase h-14 rounded-2xl shadow-xl shadow-emerald-900/20">
+                <ShieldCheck size={18} className="mr-3" /> Audit Sector Logs
+              </Button>
             </section>
           </aside>
         </div>

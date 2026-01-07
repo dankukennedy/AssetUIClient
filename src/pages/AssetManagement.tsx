@@ -230,7 +230,7 @@ const AssetManagement = () => {
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
         <div>
           <h2
             className={cn(
@@ -244,11 +244,11 @@ const AssetManagement = () => {
             Managing corporate lifecycle and hardware inventory
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={downloadCSV}
-            className="h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
           >
             <Download size={16} className="mr-2" /> Export CSV
           </Button>
@@ -257,7 +257,7 @@ const AssetManagement = () => {
               setSelectedAsset(null);
               setIsModalOpen(true);
             }}
-            className="h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
+            className="flex-1 sm:flex-none h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
           >
             <Plus size={16} className="mr-2" /> Register Asset
           </Button>
@@ -267,7 +267,7 @@ const AssetManagement = () => {
       {/* Search & Filter Bar */}
       <div
         className={cn(
-          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col md:flex-row gap-4 items-center",
+          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col lg:flex-row gap-4 items-center",
           isDark ? "bg-[#111118] border-white/5" : "bg-white border-gray-100"
         )}
       >
@@ -292,7 +292,7 @@ const AssetManagement = () => {
           />
         </div>
 
-        <div className="relative w-full md:w-64">
+        <div className="relative w-full lg:w-64">
           <Filter
             className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
             size={16}
@@ -323,7 +323,7 @@ const AssetManagement = () => {
         </div>
       </div>
 
-      {/* Table Content */}
+      {/* Main Content Area */}
       <div
         className={cn(
           "rounded-[2rem] border overflow-hidden",
@@ -332,7 +332,8 @@ const AssetManagement = () => {
             : "bg-white shadow-sm border-gray-100"
         )}
       >
-        <div className="overflow-x-auto">
+        {/* DESKTOP VIEW: Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr
@@ -442,10 +443,83 @@ const AssetManagement = () => {
           </table>
         </div>
 
+        {/* MOBILE VIEW: Card Stack */}
+        <div className="md:hidden divide-y divide-white/5">
+          {paginated.length > 0 ? (
+            paginated.map((asset) => (
+              <div key={asset.id} className="p-6 flex flex-col gap-5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-mono text-[10px] text-blue-500 font-black tracking-tighter uppercase mb-1">
+                      {asset.id}
+                    </p>
+                    <h4
+                      className={cn(
+                        "font-black text-lg",
+                        isDark ? "text-white" : "text-gray-900"
+                      )}
+                    >
+                      {asset.name}
+                    </h4>
+                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                      {asset.type}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                      asset.status === "Active"
+                        ? "bg-green-500/10 text-green-500"
+                        : asset.status === "In Repair"
+                        ? "bg-amber-500/10 text-amber-500"
+                        : "bg-red-500/10 text-red-500"
+                    )}
+                  >
+                    {asset.status}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    onClick={() => setViewingAsset(asset)}
+                  >
+                    Details
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    onClick={() => {
+                      setSelectedAsset(asset);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 text-red-500/50 hover:text-red-500"
+                    onClick={() => setDeleteId(asset.id)}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-20 text-center">
+              <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                No matching hardware records
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Pagination */}
         <div
           className={cn(
-            "px-8 py-5 flex items-center justify-between border-t",
+            "px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t",
             isDark
               ? "border-white/5 bg-white/5"
               : "border-gray-100 bg-gray-50/30"
@@ -458,7 +532,7 @@ const AssetManagement = () => {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
@@ -470,7 +544,7 @@ const AssetManagement = () => {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
@@ -480,6 +554,7 @@ const AssetManagement = () => {
         </div>
       </div>
 
+      {/* Side Drawer and Modal remain the same as they are natively responsive via max-w-lg and inset-0 classes */}
       {/* Detail Side Drawer */}
       {viewingAsset && (
         <div className="fixed inset-0 z-[1000] flex justify-end">
@@ -489,7 +564,7 @@ const AssetManagement = () => {
           />
           <aside
             className={cn(
-              "relative w-full max-w-lg h-full p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
+              "relative w-full max-w-lg h-full p-8 md:p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
               isDark
                 ? "bg-[#0d0d12] border-white/10 text-white"
                 : "bg-white border-gray-200 text-gray-900"
@@ -505,7 +580,7 @@ const AssetManagement = () => {
               <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-blue-500/50 text-blue-500 mb-6 inline-block uppercase tracking-[0.2em]">
                 Hardware Profile
               </span>
-              <h2 className="text-4xl font-black mb-2 tracking-tighter uppercase">
+              <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tighter uppercase">
                 {viewingAsset.name}
               </h2>
               <p className="font-mono text-blue-500 text-sm font-black tracking-[0.1em] uppercase opacity-80">
@@ -516,7 +591,7 @@ const AssetManagement = () => {
             <section className="space-y-8">
               <div
                 className={cn(
-                  "rounded-3xl p-8 border shadow-inner",
+                  "rounded-3xl p-6 md:p-8 border shadow-inner",
                   isDark
                     ? "bg-white/5 border-white/5"
                     : "bg-gray-50 border-gray-100"
@@ -525,7 +600,7 @@ const AssetManagement = () => {
                 <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
                   <Monitor size={16} /> Asset Details
                 </h3>
-                <div className="grid grid-cols-2 gap-y-10 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 text-sm">
                   <div>
                     <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
                       Device Category

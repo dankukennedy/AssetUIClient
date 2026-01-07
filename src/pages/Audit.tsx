@@ -41,11 +41,9 @@ const AuditPage = () => {
   const [selectedAlloc, setSelectedAlloc] = useState<Audit | null>(null);
   const [viewingAlloc, setViewingAlloc] = useState<Audit | null>(null);
 
-  // Revocation States
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
 
-  // Toast States
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState({ title: "", sub: "" });
 
@@ -73,7 +71,6 @@ const AuditPage = () => {
     },
   ]);
 
-  // FIXED: Corrected mapping property from a.audit to a.department
   const departments = useMemo(() => {
     const depts = new Set(audits.map((a) => a.department));
     return ["All Departments", ...Array.from(depts)];
@@ -87,7 +84,6 @@ const AuditPage = () => {
 
   // --- Handlers ---
   const handleSave = (data: Audit) => {
-    // FIXED: selectedAudit was undefined, changed to selectedAlloc
     if (selectedAlloc) {
       setAudits(audits.map((a) => (a.id === selectedAlloc.id ? data : a)));
       triggerToast("Assignment Updated", "Personnel records synchronized");
@@ -150,14 +146,12 @@ const AuditPage = () => {
     triggerToast("Export Successful", "Allocation logs saved to CSV");
   };
 
-  // --- Search & Filtering ---
   const filteredAudits = useMemo(() => {
     return audits.filter((a) => {
       const matchesSearch =
         a.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.assetId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.department.toLowerCase().includes(searchTerm.toLowerCase());
+        a.assetId.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesDept =
         selectedDept === "All Departments" || a.department === selectedDept;
@@ -242,7 +236,7 @@ const AuditPage = () => {
       )}
 
       {/* 3. HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
         <div>
           <h2
             className={cn(
@@ -256,27 +250,27 @@ const AuditPage = () => {
             Managing hardware distribution across personnel
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={downloadCSV}
-            className="h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
           >
-            <Download size={16} className="mr-2" /> Export CSV
+            <Download size={16} className="mr-2" /> Export
           </Button>
           <Button
             variant="outline"
             onClick={() => setIsTransferOpen(true)}
-            className="h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
           >
-            <ArrowRightLeft size={16} className="mr-2" /> Quick Transfer
+            <ArrowRightLeft size={16} className="mr-2" /> Transfer
           </Button>
           <Button
             onClick={() => {
               setSelectedAlloc(null);
               setIsModalOpen(true);
             }}
-            className="h-12 rounded-xl bg-blue-600 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
+            className="flex-1 sm:flex-none h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
           >
             <Plus size={16} className="mr-2" /> New Assignment
           </Button>
@@ -296,10 +290,12 @@ const AuditPage = () => {
             size={18}
           />
           <input
-            placeholder="Search assignee, asset, or department..."
+            placeholder="Search assignee, asset, or ID..."
             className={cn(
               "w-full pl-12 pr-4 py-3 rounded-xl text-sm outline-none transition-all",
-              isDark ? "bg-black/20 text-white" : "bg-gray-50"
+              isDark
+                ? "bg-black/20 text-white border-white/10"
+                : "bg-gray-50 border-gray-200"
             )}
             value={searchTerm}
             onChange={(e) => {
@@ -321,7 +317,9 @@ const AuditPage = () => {
             }}
             className={cn(
               "w-full pl-10 pr-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest appearance-none outline-none cursor-pointer",
-              isDark ? "bg-black/20 text-white" : "bg-gray-50 text-gray-700"
+              isDark
+                ? "bg-black/20 text-white border-white/10"
+                : "bg-gray-50 border-gray-200 text-gray-700"
             )}
           >
             {departments.map((dept) => (
@@ -337,7 +335,7 @@ const AuditPage = () => {
         </div>
       </div>
 
-      {/* 5. TABLE */}
+      {/* 5. RESPONSIVE LIST CONTENT */}
       <div
         className={cn(
           "rounded-[2rem] border overflow-hidden",
@@ -346,7 +344,8 @@ const AuditPage = () => {
             : "bg-white shadow-sm border-gray-100"
         )}
       >
-        <div className="overflow-x-auto">
+        {/* DESKTOP TABLE */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr
@@ -455,7 +454,7 @@ const AuditPage = () => {
                     colSpan={4}
                     className="px-8 py-20 text-center font-mono text-xs text-gray-500 uppercase tracking-widest"
                   >
-                    No matching assignments found
+                    No matching assignments
                   </td>
                 </tr>
               )}
@@ -463,10 +462,96 @@ const AuditPage = () => {
           </table>
         </div>
 
-        {/* 6. PAGINATION */}
+        {/* MOBILE CARD STACK */}
+        <div className="md:hidden divide-y divide-white/5">
+          {paginated.length > 0 ? (
+            paginated.map((a) => (
+              <div key={a.id} className="p-6 flex flex-col gap-5">
+                <div className="flex justify-between items-start">
+                  <div className="flex gap-4">
+                    <div className="h-10 w-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 font-black text-xs shrink-0">
+                      {a.userName.charAt(0)}
+                    </div>
+                    <div>
+                      <h4
+                        className={cn(
+                          "font-black text-lg uppercase leading-tight",
+                          isDark ? "text-white" : "text-gray-900"
+                        )}
+                      >
+                        {a.userName}
+                      </h4>
+                      <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                        {a.department}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="font-mono text-[10px] text-gray-500 font-black">
+                    {a.date}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    "p-4 rounded-2xl border",
+                    isDark
+                      ? "bg-white/5 border-white/5"
+                      : "bg-gray-50 border-gray-100"
+                  )}
+                >
+                  <div className="flex justify-between items-center">
+                    <span
+                      className={cn(
+                        "text-xs font-black uppercase",
+                        isDark ? "text-gray-300" : "text-gray-600"
+                      )}
+                    >
+                      {a.assetName}
+                    </span>
+                    <span className="font-mono text-[10px] text-blue-500 font-black uppercase">
+                      {a.assetId}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    onClick={() => setViewingAlloc(a)}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    onClick={() => {
+                      setSelectedAlloc(a);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 text-red-500/50 hover:text-red-500"
+                    onClick={() => setRevokingId(a.id)}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-20 text-center font-mono text-xs text-gray-500 uppercase tracking-widest">
+              No records online
+            </div>
+          )}
+        </div>
+
+        {/* PAGINATION */}
         <div
           className={cn(
-            "px-8 py-5 flex items-center justify-between border-t",
+            "px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t",
             isDark
               ? "border-white/5 bg-white/5"
               : "border-gray-100 bg-gray-50/30"
@@ -479,7 +564,7 @@ const AuditPage = () => {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
@@ -491,7 +576,7 @@ const AuditPage = () => {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
@@ -503,14 +588,14 @@ const AuditPage = () => {
 
       {/* 7. SIDE DRAWER */}
       {viewingAlloc && (
-        <div className="fixed inset-0 z-[1000] flex justify-end">
+        <div className="fixed inset-0 z-[1300] flex justify-end">
           <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md animate-in fade-in"
             onClick={() => setViewingAlloc(null)}
           />
           <aside
             className={cn(
-              "relative w-full max-w-lg h-full p-12 shadow-2xl border-l animate-in slide-in-from-right",
+              "relative w-full max-w-lg h-full p-8 md:p-12 shadow-2xl border-l animate-in slide-in-from-right duration-300 overflow-y-auto",
               isDark
                 ? "bg-[#0d0d12] text-white border-white/10"
                 : "bg-white text-gray-900 border-gray-200"
@@ -526,7 +611,7 @@ const AuditPage = () => {
               <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-blue-500/50 text-blue-500 mb-6 inline-block uppercase tracking-[0.2em]">
                 Assignment Profile
               </span>
-              <h2 className="text-4xl font-black mb-2 tracking-tighter uppercase">
+              <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tighter uppercase">
                 {viewingAlloc.userName}
               </h2>
               <p className="font-mono text-blue-500 text-sm font-black uppercase opacity-80">
@@ -536,7 +621,7 @@ const AuditPage = () => {
             <section className="space-y-8">
               <div
                 className={cn(
-                  "rounded-3xl p-8 border",
+                  "rounded-3xl p-6 md:p-8 border shadow-inner",
                   isDark
                     ? "bg-white/5 border-white/5"
                     : "bg-gray-50 border-gray-100"
@@ -545,7 +630,7 @@ const AuditPage = () => {
                 <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
                   <Monitor size={16} /> Allocated Hardware
                 </h3>
-                <div className="grid grid-cols-2 gap-y-10 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 text-sm">
                   <div>
                     <p className="text-gray-500 font-black uppercase text-[9px] mb-2">
                       Asset Descriptor
@@ -576,7 +661,7 @@ const AuditPage = () => {
                   </div>
                 </div>
               </div>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase h-14 rounded-2xl">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase h-14 rounded-2xl shadow-xl shadow-blue-900/20">
                 <ShieldCheck size={18} className="mr-3" /> Generate Handover
                 Form
               </Button>

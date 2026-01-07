@@ -3,22 +3,20 @@ import { Layout } from "../component/Layout";
 import {
   BarChart3,
   Download,
-  Zap,
   CheckCircle2,
   Trash2,
-  Clock,
   ShieldCheck,
   Search,
   ChevronLeft,
   ChevronRight,
   X,
-  AlertTriangle,
+  AlertOctagon,
   Loader2,
   SquareArrowOutUpLeft,
-  Calendar,
-  Database,
   Plus,
   Filter,
+  FileText,
+  Database,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
@@ -43,20 +41,22 @@ const Reports = () => {
 
   // --- States ---
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All Formats");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingReport, setViewingReport] = useState<Report | null>(null);
 
-  // Simulation States
-  const [isCompiling, setIsCompiling] = useState(false);
-  const [compileProgress, setCompileProgress] = useState(0);
+  // Custom Purge States
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Generation / Toast States
+  const [isCompiling, setIsCompiling] = useState(false);
   const [showToast, setShowToast] = useState(false);
-  const [toastMeta, setToastMeta] = useState({ title: "", sub: "" });
+  const [toastMessage, setToastMessage] = useState({ title: "", sub: "" });
 
   const itemsPerPage = 6;
+
   const [reports, setReports] = useState<Report[]>([
     {
       id: "REP-001",
@@ -81,32 +81,29 @@ const Reports = () => {
     },
   ]);
 
-  // --- Logic: Feedback Systems ---
+  // Derived unique types for filter
+  const typeOptions = useMemo(() => {
+    const types = new Set(reports.map((r) => r.type));
+    return ["All Formats", ...Array.from(types)];
+  }, [reports]);
+
+  // --- Logic: Trigger Toast ---
   const triggerToast = (title: string, sub: string) => {
-    setToastMeta({ title, sub });
+    setToastMessage({ title, sub });
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  const triggerReportGeneration = (data: any) => {
+  // --- Handlers ---
+  const handleGenerate = (data: any) => {
     setIsModalOpen(false);
     setIsCompiling(true);
-    setCompileProgress(0);
 
-    const interval = setInterval(() => {
-      setCompileProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 100);
-
+    // Simulate compilation delay
     setTimeout(() => {
       const newReport: Report = {
-        id: `REP-00${reports.length + 1}`,
-        title: data.title || "New System Analysis",
+        id: `REP-0${reports.length + 1}`,
+        title: data.title || "System Analysis",
         date: new Date().toISOString().split("T")[0],
         type: data.type || "PDF",
         size: `${(Math.random() * 5).toFixed(1)} MB`,
@@ -115,22 +112,25 @@ const Reports = () => {
       setIsCompiling(false);
       triggerToast(
         "Generation Complete",
-        "Intel manifest committed to core registry"
+        "Intel manifest committed to registry"
       );
-    }, 2200);
+    }, 1500);
   };
 
   const confirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     setReports(reports.filter((r) => r.id !== deleteId));
-    triggerToast("Report Purged", `Manifest ${deleteId} removed from disk`);
+    triggerToast("Record Purged", `Report ${deleteId} removed from disk`);
+
     setDeleteId(null);
     setIsDeleting(false);
+    if (viewingReport?.id === deleteId) setViewingReport(null);
   };
 
-  const downloadCSV = () => {
+  const downloadArchiveCSV = () => {
     const headers = ["ID", "Title", "Date", "Format", "Size"];
     const csvContent = [
       headers.join(","),
@@ -143,70 +143,59 @@ const Reports = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `intel_archive_${Date.now()}.csv`);
+    link.setAttribute("download", `intel_archive_${new Date().getTime()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    triggerToast("Archive Exported", "Intel registry saved as CSV");
+    triggerToast("Archive Exported", "Analytical index saved to CSV");
   };
 
-  // --- Logic: Filtering & Pagination ---
+  // --- Logic: Search & Pagination ---
   const filteredReports = useMemo(() => {
     return reports.filter((r) => {
       const matchesSearch =
         r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.id.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = typeFilter === "All" || r.type === typeFilter;
+
+      const matchesType = typeFilter === "All Formats" || r.type === typeFilter;
+
       return matchesSearch && matchesType;
     });
   }, [searchTerm, typeFilter, reports]);
 
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
-  const paginatedReports = filteredReports.slice(
+  const paginated = filteredReports.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
   return (
     <Layout title="Analytics Hub" icon={BarChart3}>
-      {/* HUD: Compilation Overlay */}
-      {isCompiling && (
-        <div className="fixed top-0 left-0 w-full h-1.5 z-[2000] bg-blue-500/10">
-          <div
-            className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all duration-100 ease-out"
-            style={{ width: `${compileProgress}%` }}
-          />
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-xl border border-blue-500/30 px-8 py-3 rounded-2xl shadow-2xl flex items-center gap-4 animate-pulse">
-            <Loader2 className="animate-spin text-blue-500" size={16} />
-            <span className="text-[10px] font-black uppercase text-blue-400 tracking-[0.3em]">
-              Compiling Intelligence Manifest... {compileProgress}%
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Delete Confirmation */}
+      {/* 1. PURGE CONFIRMATION MODAL */}
       {deleteId && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div
             className={cn(
-              "p-10 rounded-[3rem] border max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200",
+              "p-8 rounded-[2.5rem] border max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95",
               isDark
-                ? "bg-[#0d0d12] border-red-500/20"
-                : "bg-white border-gray-100"
+                ? "bg-[#0d0d12] border-white/10"
+                : "bg-white border-gray-200"
             )}
           >
-            <AlertTriangle className="text-red-500 mx-auto mb-6" size={48} />
-            <h3 className="text-xl font-black mb-2 uppercase text-red-500 tracking-tighter">
-              Purge Data?
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertOctagon className="text-red-500" size={32} />
+            </div>
+            <h3 className="text-xl font-black mb-2 tracking-tighter uppercase text-red-500">
+              Purge Report?
             </h3>
             <p className="text-[10px] text-gray-500 mb-8 font-mono tracking-widest uppercase">
-              Registry ID: {deleteId}
+              Permanently removing file: {deleteId}
             </p>
             <div className="flex gap-3">
               <Button
                 variant="ghost"
                 className="flex-1 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+                disabled={isDeleting}
                 onClick={() => setDeleteId(null)}
               >
                 Abort
@@ -219,7 +208,7 @@ const Reports = () => {
                 {isDeleting ? (
                   <Loader2 className="animate-spin" size={16} />
                 ) : (
-                  "Confirm Purge"
+                  "Confirm"
                 )}
               </Button>
             </div>
@@ -227,9 +216,9 @@ const Reports = () => {
         </div>
       )}
 
-      {/* Notification Toast */}
+      {/* Toast Notification */}
       {showToast && (
-        <div className="fixed bottom-10 right-10 z-[1500] animate-in slide-in-from-right-10 fade-in">
+        <div className="fixed bottom-10 right-10 z-[400] animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div
             className={cn(
               "flex items-center gap-4 px-8 py-5 rounded-[2rem] shadow-2xl border",
@@ -241,192 +230,141 @@ const Reports = () => {
             <CheckCircle2 size={20} />
             <div className="flex flex-col">
               <span className="text-sm font-black uppercase tracking-tight">
-                {toastMeta.title}
+                {toastMessage.title}
               </span>
               <span className="text-[10px] opacity-70 uppercase font-bold tracking-[0.2em]">
-                {toastMeta.sub}
+                {toastMessage.sub}
               </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+      {/* Header */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
         <div>
           <h2
             className={cn(
-              "text-4xl font-black tracking-tighter uppercase",
+              "text-2xl font-black tracking-tight uppercase",
               isDark ? "text-white" : "text-gray-900"
             )}
           >
-            System Intel
+            Intel Archive
           </h2>
-          <div className="flex items-center gap-3 mt-1">
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            <p className="text-xs font-mono text-gray-500 uppercase tracking-widest font-bold">
-              Registry Live / Lifecycle Compliance Active
-            </p>
-          </div>
+          <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+            Compiling system analytics and compliance manifests
+          </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
-            onClick={downloadCSV}
-            className="h-14 rounded-2xl border-white/10 px-6 font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
+            onClick={downloadArchiveCSV}
+            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
           >
-            <Download size={16} className="mr-3" /> Export Archive
+            <Download size={16} className="mr-2" /> Export Archive
           </Button>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-8 font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-900/40 transition-all active:scale-95"
+            disabled={isCompiling}
+            className="flex-1 sm:flex-none h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
           >
-            <Zap size={16} className="mr-3 fill-current" /> Generate Manifest
+            {isCompiling ? (
+              <>
+                <Loader2 className="mr-2 animate-spin" size={16} /> Compiling...
+              </>
+            ) : (
+              <>
+                <Plus size={16} className="mr-2" /> Generate Report
+              </>
+            )}
           </Button>
         </div>
       </div>
 
-      {/* Statistics HUD */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {[
-          {
-            label: "Storage Nodes",
-            val: "1,204",
-            icon: Database,
-            color: "text-blue-500",
-          },
-          {
-            label: "Integrity Rate",
-            val: "99.98%",
-            icon: ShieldCheck,
-            color: "text-emerald-500",
-          },
-          {
-            label: "Sync Latency",
-            val: "14ms",
-            icon: Clock,
-            color: "text-purple-500",
-          },
-        ].map((stat, i) => (
-          <div
-            key={i}
-            className={cn(
-              "p-8 rounded-[2rem] border relative overflow-hidden group",
-              isDark
-                ? "bg-[#111118] border-white/5"
-                : "bg-white border-gray-100 shadow-sm"
-            )}
-          >
-            <div className="relative z-10">
-              <p className="text-[9px] font-black uppercase text-gray-500 tracking-[0.3em] mb-2">
-                {stat.label}
-              </p>
-              <p
-                className={cn(
-                  "text-4xl font-black tracking-tighter",
-                  stat.color
-                )}
-              >
-                {stat.val}
-              </p>
-            </div>
-            <stat.icon
-              size={80}
-              className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-500"
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Toolbar with New Report Button */}
+      {/* Search & Filter Bar */}
       <div
         className={cn(
-          "p-4 rounded-3xl mb-8 flex flex-col md:flex-row gap-4 items-center border",
-          isDark
-            ? "bg-[#111118] border-white/5"
-            : "bg-white border-gray-100 shadow-sm"
+          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col lg:flex-row gap-4 items-center",
+          isDark ? "bg-[#111118] border-white/5" : "bg-white border-gray-100"
         )}
       >
-        <div className="relative flex-1 w-full flex gap-3">
-          <div className="relative flex-1">
-            <Search
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"
-              size={18}
-            />
-            <input
-              placeholder="Search manifest by title or registry ID..."
-              className={cn(
-                "w-full pl-14 pr-6 py-4 rounded-2xl text-sm outline-none transition-all font-medium",
-                isDark
-                  ? "bg-black/40 border-white/10 text-white focus:border-blue-500/50"
-                  : "bg-gray-50 border-gray-200"
-              )}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            variant="ghost"
+        <div className="relative flex-1 w-full">
+          <Search
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
+          <input
+            placeholder="Search manifests by title or ID..."
             className={cn(
-              "h-14 px-6 rounded-2xl border border-dashed font-black text-[10px] uppercase tracking-widest transition-all hidden lg:flex",
+              "w-full pl-12 pr-4 py-3 rounded-xl text-sm outline-none transition-all",
               isDark
-                ? "border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/60"
-                : "border-blue-200 text-blue-600 hover:bg-blue-50"
+                ? "bg-black/20 border-white/10 text-white focus:border-blue-500/50"
+                : "bg-gray-50 border-gray-200"
             )}
-          >
-            <Plus size={16} className="mr-2" />
-            New Report
-          </Button>
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
         </div>
 
-        <div className="relative w-full md:w-72">
+        <div className="relative w-full lg:w-64">
           <Filter
-            className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
             size={16}
           />
           <select
-            className={cn(
-              "w-full pl-12 pr-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none border cursor-pointer appearance-none",
-              isDark
-                ? "bg-black/40 border-white/10 text-white"
-                : "bg-gray-50 border-gray-200"
-            )}
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className={cn(
+              "w-full pl-10 pr-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none transition-all appearance-none cursor-pointer",
+              isDark
+                ? "bg-black/20 border-white/10 text-white focus:border-blue-500/50"
+                : "bg-gray-50 border-gray-200 text-gray-700"
+            )}
           >
-            <option value="All">All Intelligence Formats</option>
-            <option value="PDF">Format: PDF (Portable)</option>
-            <option value="CSV">Format: CSV (Data)</option>
-            <option value="JSON">Format: JSON (Object)</option>
+            {typeOptions.map((opt) => (
+              <option
+                key={opt}
+                value={opt}
+                className={isDark ? "bg-[#0d0d12]" : "bg-white"}
+              >
+                {opt}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {/* Registry Table */}
+      {/* Main Content Area */}
       <div
         className={cn(
-          "rounded-[2.5rem] border overflow-hidden",
+          "rounded-[2rem] border overflow-hidden",
           isDark
             ? "border-white/5 bg-[#111118]"
-            : "bg-white border-gray-100 shadow-xl"
+            : "bg-white shadow-sm border-gray-100"
         )}
       >
-        <div className="overflow-x-auto">
+        {/* DESKTOP VIEW: Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr
                 className={cn(
-                  "text-[10px] uppercase tracking-[0.3em] font-black",
+                  "text-[10px] uppercase tracking-[0.2em] font-black",
                   isDark
                     ? "bg-white/5 text-gray-500"
                     : "bg-gray-50 text-gray-400"
                 )}
               >
-                <th className="px-10 py-6">Intelligence Identity</th>
-                <th className="px-10 py-6 text-center">Format Cluster</th>
-                <th className="px-10 py-6 text-right">Registry Operations</th>
+                <th className="px-8 py-5">Registry ID</th>
+                <th className="px-8 py-5">Manifest Profile</th>
+                <th className="px-8 py-5">File Size</th>
+                <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody
@@ -435,183 +373,261 @@ const Reports = () => {
                 isDark ? "divide-white/5" : "divide-gray-50"
               )}
             >
-              {paginatedReports.map((report) => (
-                <tr
-                  key={report.id}
-                  className={cn(
-                    "text-sm transition-all group",
-                    isDark ? "hover:bg-blue-500/[0.03]" : "hover:bg-blue-50/50"
-                  )}
-                >
-                  <td className="px-10 py-7">
-                    <div className="flex flex-col">
-                      <span
-                        className={cn(
-                          "font-black text-lg tracking-tight mb-1",
-                          isDark ? "text-gray-200" : "text-gray-900"
-                        )}
-                      >
-                        {report.title}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-[10px] text-blue-500 font-black tracking-tighter uppercase">
-                          {report.id}
+              {paginated.length > 0 ? (
+                paginated.map((report) => (
+                  <tr
+                    key={report.id}
+                    className={cn(
+                      "text-sm transition-colors group",
+                      isDark ? "hover:bg-white/[0.02]" : "hover:bg-blue-50/30"
+                    )}
+                  >
+                    <td className="px-8 py-5 font-mono text-[11px] text-blue-500 font-black tracking-tighter uppercase">
+                      {report.id}
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col">
+                        <span
+                          className={cn(
+                            "font-black",
+                            isDark ? "text-gray-200" : "text-gray-900"
+                          )}
+                        >
+                          {report.title}
                         </span>
-                        <span className="w-1 h-1 rounded-full bg-gray-700" />
-                        <span className="font-mono text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                          {report.date}
+                        <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                          {report.date} • {report.type}
                         </span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-10 py-7 text-center">
-                    <span className="px-4 py-2 rounded-xl text-[9px] font-black border border-blue-500/20 text-blue-500 bg-blue-500/5 uppercase tracking-[0.2em]">
-                      {report.type} // {report.size}
-                    </span>
-                  </td>
-                  <td className="px-10 py-7 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-11 w-11 rounded-xl text-gray-500 hover:text-blue-500 hover:bg-blue-500/10"
-                        onClick={() => setViewingReport(report)}
-                      >
-                        <SquareArrowOutUpLeft size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-11 w-11 rounded-xl text-gray-500 hover:text-red-500 hover:bg-red-500/10"
-                        onClick={() => setDeleteId(report.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[9px] font-black uppercase tracking-widest">
+                        {report.size}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-blue-500"
+                          onClick={() => setViewingReport(report)}
+                        >
+                          <SquareArrowOutUpLeft size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-red-500"
+                          onClick={() => setDeleteId(report.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-8 py-20 text-center">
+                    <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                      No matching records found in archive
+                    </p>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Paginator HUD */}
+        {/* MOBILE VIEW: Card Stack */}
+        <div className="md:hidden divide-y divide-white/5">
+          {paginated.length > 0 ? (
+            paginated.map((report) => (
+              <div key={report.id} className="p-6 flex flex-col gap-5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-mono text-[10px] text-blue-500 font-black tracking-tighter uppercase mb-1">
+                      {report.id}
+                    </p>
+                    <h4
+                      className={cn(
+                        "font-black text-lg",
+                        isDark ? "text-white" : "text-gray-900"
+                      )}
+                    >
+                      {report.title}
+                    </h4>
+                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                      {report.type} • {report.size}
+                    </p>
+                  </div>
+                  <span className="text-[9px] font-mono text-gray-500">
+                    {report.date}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    onClick={() => setViewingReport(report)}
+                  >
+                    View Manifest
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 text-red-500/50 hover:text-red-500"
+                    onClick={() => setDeleteId(report.id)}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-20 text-center">
+              <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                No matching reports
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
         <div
           className={cn(
-            "px-10 py-6 flex items-center justify-between border-t",
+            "px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t",
             isDark
-              ? "border-white/5 bg-white/[0.02]"
-              : "border-gray-100 bg-gray-50/50"
+              ? "border-white/5 bg-white/5"
+              : "border-gray-100 bg-gray-50/30"
           )}
         >
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic">
-              {filteredReports.length} Encrypted Records Found
-            </span>
-          </div>
+          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic">
+            TOTAL MANIFESTS: {filteredReports.length}
+          </span>
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="icon"
-              className="h-10 w-10 rounded-xl"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={14} />
             </Button>
-            <span className="text-[12px] font-black font-mono px-4">
+            <span className="text-[11px] font-black font-mono">
               {currentPage} / {totalPages || 1}
             </span>
             <Button
               variant="outline"
               size="icon"
-              className="h-10 w-10 rounded-xl"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Sub-Components: Side Drawer Detail */}
+      {/* Detail Side Drawer */}
       {viewingReport && (
-        <div className="fixed inset-0 z-[1600] flex justify-end">
+        <div className="fixed inset-0 z-[1000] flex justify-end">
           <div
-            className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md animate-in fade-in"
             onClick={() => setViewingReport(null)}
           />
           <aside
             className={cn(
-              "relative w-full max-w-lg h-full p-16 shadow-2xl animate-in slide-in-from-right duration-500 border-l",
+              "relative w-full max-w-lg h-full p-8 md:p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
               isDark
                 ? "bg-[#0d0d12] border-white/10 text-white"
-                : "bg-white border-gray-200"
+                : "bg-white border-gray-200 text-gray-900"
             )}
           >
             <button
               onClick={() => setViewingReport(null)}
-              className="absolute top-10 right-10 text-slate-500 hover:text-red-500 transition-colors"
+              className="absolute top-8 right-8 text-slate-500 hover:text-red-500 transition-colors"
             >
-              <X size={32} />
+              <X size={24} />
             </button>
-            <header className="mb-16 pt-10">
-              <span className="px-5 py-2 rounded-full text-[10px] font-black border border-blue-500/40 text-blue-500 mb-8 inline-block uppercase tracking-[0.3em]">
-                Registry Detail
+            <header className="mb-12 pt-6">
+              <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-blue-500/50 text-blue-500 mb-6 inline-block uppercase tracking-[0.2em]">
+                Intel Manifest
               </span>
-              <h2 className="text-5xl font-black mb-4 tracking-tighter uppercase leading-[0.9]">
+              <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tighter uppercase">
                 {viewingReport.title}
               </h2>
-              <p className="font-mono text-blue-500 text-lg font-black tracking-widest uppercase opacity-80">
+              <p className="font-mono text-blue-500 text-sm font-black tracking-[0.1em] uppercase opacity-80">
                 {viewingReport.id}
               </p>
             </header>
 
-            <div
-              className={cn(
-                "rounded-[2.5rem] p-10 border shadow-inner mb-10",
-                isDark
-                  ? "bg-white/5 border-white/5"
-                  : "bg-gray-50 border-gray-100"
-              )}
-            >
-              <h3 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-4">
-                <Database size={20} /> Manifest Properties
-              </h3>
-              <div className="space-y-10">
-                <div className="flex justify-between items-center">
+            <section className="space-y-8">
+              <div
+                className={cn(
+                  "rounded-3xl p-6 md:p-8 border shadow-inner",
+                  isDark
+                    ? "bg-white/5 border-white/5"
+                    : "bg-gray-50 border-gray-100"
+                )}
+              >
+                <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                  <Database size={16} /> Extraction Metadata
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 text-sm">
                   <div>
-                    <p className="text-gray-500 font-black uppercase text-[10px] tracking-[0.2em] mb-2">
-                      Committed On
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Format Variant
                     </p>
-                    <p className="font-black flex items-center gap-3 text-xl">
-                      <Calendar size={20} className="text-blue-500" />{" "}
-                      {viewingReport.date}
+                    <p className="font-black text-lg">{viewingReport.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Payload Size
+                    </p>
+                    <p className="font-black text-lg uppercase tracking-tight text-blue-500">
+                      {viewingReport.size}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-gray-500 font-black uppercase text-[10px] tracking-[0.2em] mb-2">
-                      Binary Weight
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Compilation Date
                     </p>
-                    <p className="font-mono font-black text-xl text-blue-500">
-                      {viewingReport.size}
+                    <p className="font-mono font-black">{viewingReport.date}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Audit Security
+                    </p>
+                    <p className="font-black tracking-tight text-green-500">
+                      VERIFIED
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
-            <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white font-black text-[12px] uppercase tracking-[0.3em] h-20 rounded-[2rem] shadow-2xl shadow-blue-900/40 transition-all active:scale-95">
-              <Download size={20} className="mr-4" /> Pull From Registry
-            </Button>
+
+              <div className="pt-8 border-t border-white/5 space-y-4">
+                <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-blue-900/20">
+                  <ShieldCheck size={18} className="mr-3" /> Execute Data
+                  Download
+                </Button>
+                <p className="text-[9px] text-center text-gray-500 font-black uppercase tracking-widest italic">
+                  End-to-end encrypted manifest delivery
+                </p>
+              </div>
+            </section>
           </aside>
         </div>
       )}
 
+      {/* Generate Report Modal */}
       <ReportsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={triggerReportGeneration}
+        onSave={handleGenerate}
         isDark={isDark}
       />
     </Layout>

@@ -71,7 +71,7 @@ const BlocksPage = () => {
     },
   ]);
 
-  // Derived unique departments for the filter
+  // Derived unique departments for filter
   const departments = useMemo(() => {
     const depts = new Set(allocations.map((a) => a.department));
     return ["All Departments", ...Array.from(depts)];
@@ -101,7 +101,7 @@ const BlocksPage = () => {
   const confirmRevocation = async () => {
     if (!revokingId) return;
     setIsRevoking(true);
-    await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate processing
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     setAllocations(allocations.filter((a) => a.id !== revokingId));
     triggerToast("Assignment Revoked", `Asset ${revokingId} returned to pool`);
@@ -112,24 +112,14 @@ const BlocksPage = () => {
   };
 
   const downloadCSV = () => {
-    const headers = [
-      "Allocation ID",
-      "User Name",
-      "User ID",
-      "Asset Name",
-      "Asset ID",
-      "Department",
-      "Date",
-    ];
+    const headers = ["ID", "Custodian", "Asset", "Department", "Date"];
     const csvContent = [
       headers.join(","),
       ...allocations.map((a) =>
         [
           a.id,
           `"${a.userName}"`,
-          a.userId,
           `"${a.assetName}"`,
-          a.assetId,
           a.department,
           a.date,
         ].join(",")
@@ -142,7 +132,7 @@ const BlocksPage = () => {
     link.href = url;
     link.setAttribute(
       "download",
-      `allocations_${new Date().toISOString().split("T")[0]}.csv`
+      `allocation_logs_${new Date().getTime()}.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -156,8 +146,7 @@ const BlocksPage = () => {
       const matchesSearch =
         a.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.assetId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.department.toLowerCase().includes(searchTerm.toLowerCase());
+        a.id.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesDept =
         selectedDept === "All Departments" || a.department === selectedDept;
@@ -192,7 +181,7 @@ const BlocksPage = () => {
               Revoke Assignment?
             </h3>
             <p className="text-[10px] text-gray-500 mb-8 font-mono tracking-widest uppercase">
-              REMOVING ACCESS FOR RECORD: {revokingId}
+              Permanently removing record: {revokingId}
             </p>
             <div className="flex gap-3">
               <Button
@@ -226,8 +215,8 @@ const BlocksPage = () => {
             className={cn(
               "flex items-center gap-4 px-8 py-5 rounded-[2rem] shadow-2xl border",
               isDark
-                ? "bg-[#111118] border-emerald-500/50 text-emerald-400"
-                : "bg-white border-emerald-100 text-emerald-600"
+                ? "bg-[#111118] border-amber-500/50 text-amber-400"
+                : "bg-white border-amber-100 text-amber-600"
             )}
           >
             <CheckCircle2 size={20} />
@@ -244,7 +233,7 @@ const BlocksPage = () => {
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
         <div>
           <h2
             className={cn(
@@ -252,35 +241,28 @@ const BlocksPage = () => {
               isDark ? "text-white" : "text-gray-900"
             )}
           >
-            Asset Allocation
+            Assignment Log
           </h2>
           <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-            Managing hardware distribution across personnel
+            Tracking hardware custody and departmental distribution
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={downloadCSV}
-            className="h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
           >
-            <Download size={16} className="mr-2" /> Export CSV
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setIsTransferOpen(true)}
-            className="h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
-          >
-            <ArrowRightLeft size={16} className="mr-2" /> Quick Transfer
+            <Download size={16} className="mr-2" /> Export Logs
           </Button>
           <Button
             onClick={() => {
               setSelectedAlloc(null);
               setIsModalOpen(true);
             }}
-            className="h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
+            className="flex-1 sm:flex-none h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
           >
-            <Plus size={16} className="mr-2" /> New Assignment
+            <Plus size={16} className="mr-2" /> New Allocation
           </Button>
         </div>
       </div>
@@ -288,7 +270,7 @@ const BlocksPage = () => {
       {/* Search & Filter Bar */}
       <div
         className={cn(
-          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col md:flex-row gap-4 items-center",
+          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col lg:flex-row gap-4 items-center",
           isDark ? "bg-[#111118] border-white/5" : "bg-white border-gray-100"
         )}
       >
@@ -298,7 +280,7 @@ const BlocksPage = () => {
             size={18}
           />
           <input
-            placeholder="Search assignee, asset, or department..."
+            placeholder="Search by user, asset, or ID..."
             className={cn(
               "w-full pl-12 pr-4 py-3 rounded-xl text-sm outline-none transition-all",
               isDark
@@ -312,8 +294,7 @@ const BlocksPage = () => {
             }}
           />
         </div>
-
-        <div className="relative w-full md:w-64">
+        <div className="relative w-full lg:w-64">
           <Filter
             className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
             size={16}
@@ -344,7 +325,7 @@ const BlocksPage = () => {
         </div>
       </div>
 
-      {/* Table Content */}
+      {/* Main Content Area */}
       <div
         className={cn(
           "rounded-[2rem] border overflow-hidden",
@@ -353,7 +334,8 @@ const BlocksPage = () => {
             : "bg-white shadow-sm border-gray-100"
         )}
       >
-        <div className="overflow-x-auto">
+        {/* DESKTOP VIEW */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr
@@ -364,9 +346,9 @@ const BlocksPage = () => {
                     : "bg-gray-50 text-gray-400"
                 )}
               >
-                <th className="px-8 py-5">Assignee Details</th>
-                <th className="px-8 py-5">Hardware Profile</th>
-                <th className="px-8 py-5">Manifest Date</th>
+                <th className="px-8 py-5">Assignment ID</th>
+                <th className="px-8 py-5">Custodian & Dept</th>
+                <th className="px-8 py-5">Allocated Asset</th>
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
@@ -377,32 +359,30 @@ const BlocksPage = () => {
               )}
             >
               {paginated.length > 0 ? (
-                paginated.map((a) => (
+                paginated.map((alloc) => (
                   <tr
-                    key={a.id}
+                    key={alloc.id}
                     className={cn(
                       "text-sm transition-colors group",
                       isDark ? "hover:bg-white/[0.02]" : "hover:bg-blue-50/30"
                     )}
                   >
+                    <td className="px-8 py-5 font-mono text-[11px] text-blue-500 font-black tracking-tighter uppercase">
+                      {alloc.id}
+                    </td>
                     <td className="px-8 py-5">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 font-black text-xs">
-                          {a.userName.charAt(0)}
-                        </div>
-                        <div className="flex flex-col">
-                          <span
-                            className={cn(
-                              "font-black",
-                              isDark ? "text-gray-200" : "text-gray-900"
-                            )}
-                          >
-                            {a.userName}
-                          </span>
-                          <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
-                            {a.department}
-                          </span>
-                        </div>
+                      <div className="flex flex-col">
+                        <span
+                          className={cn(
+                            "font-black",
+                            isDark ? "text-gray-200" : "text-gray-900"
+                          )}
+                        >
+                          {alloc.userName}
+                        </span>
+                        <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                          {alloc.department}
+                        </span>
                       </div>
                     </td>
                     <td className="px-8 py-5">
@@ -413,15 +393,12 @@ const BlocksPage = () => {
                             isDark ? "text-gray-200" : "text-gray-900"
                           )}
                         >
-                          {a.assetName}
+                          {alloc.assetName}
                         </span>
-                        <span className="font-mono text-[10px] text-blue-500 font-black tracking-tighter uppercase">
-                          {a.assetId}
+                        <span className="text-[10px] text-blue-500/60 uppercase font-black tracking-widest">
+                          {alloc.assetId}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-8 py-5 font-mono text-[11px] text-gray-500 font-bold uppercase tracking-widest">
-                      {a.date}
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex justify-end gap-1">
@@ -429,7 +406,7 @@ const BlocksPage = () => {
                           variant="ghost"
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-blue-500"
-                          onClick={() => setViewingAlloc(a)}
+                          onClick={() => setViewingAlloc(alloc)}
                         >
                           <SquareArrowOutUpLeft size={14} />
                         </Button>
@@ -438,7 +415,7 @@ const BlocksPage = () => {
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-blue-500"
                           onClick={() => {
-                            setSelectedAlloc(a);
+                            setSelectedAlloc(alloc);
                             setIsModalOpen(true);
                           }}
                         >
@@ -447,8 +424,8 @@ const BlocksPage = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-9 w-9 text-gray-400 hover:text-red-500"
-                          onClick={() => setRevokingId(a.id)}
+                          className="h-9 w-9 text-gray-400 hover:text-amber-500"
+                          onClick={() => setRevokingId(alloc.id)}
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -458,10 +435,11 @@ const BlocksPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-8 py-20 text-center">
-                    <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-                      No matching assignments found
-                    </p>
+                  <td
+                    colSpan={4}
+                    className="px-8 py-20 text-center text-xs font-mono text-gray-500 uppercase tracking-widest"
+                  >
+                    No matching records found
                   </td>
                 </tr>
               )}
@@ -469,23 +447,76 @@ const BlocksPage = () => {
           </table>
         </div>
 
+        {/* MOBILE VIEW */}
+        <div className="md:hidden divide-y divide-white/5">
+          {paginated.map((alloc) => (
+            <div key={alloc.id} className="p-6 flex flex-col gap-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-mono text-[10px] text-blue-500 font-black tracking-tighter uppercase mb-1">
+                    {alloc.id}
+                  </p>
+                  <h4
+                    className={cn(
+                      "font-black text-lg",
+                      isDark ? "text-white" : "text-gray-900"
+                    )}
+                  >
+                    {alloc.userName}
+                  </h4>
+                  <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                    {alloc.department}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                  onClick={() => setViewingAlloc(alloc)}
+                >
+                  Details
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                  onClick={() => {
+                    setSelectedAlloc(alloc);
+                    setIsModalOpen(true);
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 text-amber-500/50 hover:text-amber-500"
+                  onClick={() => setRevokingId(alloc.id)}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Pagination */}
         <div
           className={cn(
-            "px-8 py-5 flex items-center justify-between border-t",
+            "px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t",
             isDark
               ? "border-white/5 bg-white/5"
               : "border-gray-100 bg-gray-50/30"
           )}
         >
           <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic">
-            ACTIVE ASSIGNMENTS: {filteredAllocations.length}
+            TOTAL ASSIGNMENTS: {filteredAllocations.length}
           </span>
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
@@ -497,7 +528,7 @@ const BlocksPage = () => {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-xl"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
@@ -516,7 +547,7 @@ const BlocksPage = () => {
           />
           <aside
             className={cn(
-              "relative w-full max-w-lg h-full p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
+              "relative w-full max-w-lg h-full p-8 md:p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
               isDark
                 ? "bg-[#0d0d12] border-white/10 text-white"
                 : "bg-white border-gray-200 text-gray-900"
@@ -530,32 +561,31 @@ const BlocksPage = () => {
             </button>
             <header className="mb-12 pt-6">
               <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-blue-500/50 text-blue-500 mb-6 inline-block uppercase tracking-[0.2em]">
-                Assignment Profile
+                Personnel Assignment
               </span>
-              <h2 className="text-4xl font-black mb-2 tracking-tighter uppercase">
+              <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tighter uppercase">
                 {viewingAlloc.userName}
               </h2>
               <p className="font-mono text-blue-500 text-sm font-black tracking-[0.1em] uppercase opacity-80">
-                {viewingAlloc.userId}
+                {viewingAlloc.id}
               </p>
             </header>
-
             <section className="space-y-8">
               <div
                 className={cn(
-                  "rounded-3xl p-8 border shadow-inner",
+                  "rounded-3xl p-6 md:p-8 border shadow-inner",
                   isDark
                     ? "bg-white/5 border-white/5"
                     : "bg-gray-50 border-gray-100"
                 )}
               >
                 <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
-                  <Monitor size={16} /> Allocated Hardware
+                  <Monitor size={16} /> Assignment Details
                 </h3>
-                <div className="grid grid-cols-2 gap-y-10 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 text-sm">
                   <div>
                     <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      Asset Descriptor
+                      Allocated Asset
                     </p>
                     <p className="font-black text-lg">
                       {viewingAlloc.assetName}
@@ -563,44 +593,42 @@ const BlocksPage = () => {
                   </div>
                   <div>
                     <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      System Serial
+                      Department
                     </p>
-                    <p className="font-mono text-blue-500 font-black text-lg uppercase">
-                      {viewingAlloc.assetId}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      Cost Center
-                    </p>
-                    <p className="font-black tracking-tight">
+                    <p className="font-black text-lg uppercase tracking-tight text-blue-500">
                       {viewingAlloc.department}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      Handover Date
+                      Asset ID
+                    </p>
+                    <p className="font-black tracking-tight">
+                      {viewingAlloc.assetId}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Issue Date
                     </p>
                     <p className="font-mono font-black">{viewingAlloc.date}</p>
                   </div>
                 </div>
               </div>
-
               <div className="pt-8 border-t border-white/5 space-y-4">
-                <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-blue-900/20">
-                  <ShieldCheck size={18} className="mr-3" /> Generate Handover
-                  Form
+                <Button
+                  className="w-full justify-center bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-blue-900/20"
+                  onClick={() => setIsTransferOpen(true)}
+                >
+                  <ArrowRightLeft size={18} className="mr-3" /> Initiate Asset
+                  Transfer
                 </Button>
-                <p className="text-[9px] text-center text-gray-500 font-black uppercase tracking-widest italic">
-                  Digital signatures will be requested upon generation
-                </p>
               </div>
             </section>
           </aside>
         </div>
       )}
 
-      {/* Modals */}
       <AllocationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -611,7 +639,6 @@ const BlocksPage = () => {
       <TransfersModal
         isOpen={isTransferOpen}
         onClose={() => setIsTransferOpen(false)}
-        onSave={() => setIsTransferOpen(false)}
         isDark={isDark}
       />
     </Layout>

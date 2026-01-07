@@ -6,32 +6,23 @@ import {
   Edit2,
   Trash2,
   Search,
-  ArrowRightLeft,
-  Download,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
   X,
+  MapPin,
+  CheckCircle2,
   SquareArrowOutUpLeft,
-  AlertTriangle,
+  ShieldCheck,
+  Download,
+  AlertOctagon,
   Loader2,
   Filter,
+  ArrowRightLeft,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
 import { Button } from "../component/ui/button";
-import { TransfersModal } from "../models/TransfersModal";
-
-export interface TransferRecord {
-  id: string;
-  assetId: string;
-  assetName: string;
-  fromLocation: string;
-  toLocation: string;
-  status: "In Transit" | "Completed" | "Pending";
-  date: string;
-  priority: "High" | "Standard";
-}
+import { TransfersModal, type TransferRecord } from "../models/TransfersModal";
 
 const Transfers = () => {
   const { theme } = useTheme();
@@ -42,7 +33,7 @@ const Transfers = () => {
 
   // --- States ---
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTransfer, setSelectedTransfer] =
@@ -51,6 +42,7 @@ const Transfers = () => {
     null
   );
 
+  // Custom Purge States
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -80,15 +72,32 @@ const Transfers = () => {
       date: "2024-03-08",
       priority: "Standard",
     },
+    {
+      id: "TRF-9903",
+      assetId: "AST-202",
+      assetName: "Cisco Firewall",
+      fromLocation: "HQ Office",
+      toLocation: "London Branch",
+      status: "Pending",
+      date: "2024-03-12",
+      priority: "High",
+    },
   ]);
 
-  // --- Helpers ---
+  // Derived unique statuses for filter
+  const statusOptions = useMemo(() => {
+    const statuses = new Set(transfers.map((t) => t.status));
+    return ["All Statuses", ...Array.from(statuses)];
+  }, [transfers]);
+
+  // --- Logic: Trigger Toast ---
   const triggerToast = (title: string, sub: string) => {
     setToastMessage({ title, sub });
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  // --- Handlers ---
   const handleSave = (data: TransferRecord) => {
     if (selectedTransfer) {
       setTransfers(
@@ -102,8 +111,29 @@ const Transfers = () => {
     setIsModalOpen(false);
   };
 
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    setTransfers(transfers.filter((t) => t.id !== deleteId));
+    triggerToast("Record Purged", `Manifest ${deleteId} removed from logs`);
+
+    setDeleteId(null);
+    setIsDeleting(false);
+    if (viewingTransfer?.id === deleteId) setViewingTransfer(null);
+  };
+
   const downloadCSV = () => {
-    const headers = ["ID", "Asset", "Origin", "Destination", "Status", "Date"];
+    const headers = [
+      "ID",
+      "Asset",
+      "Origin",
+      "Destination",
+      "Status",
+      "Date",
+      "Priority",
+    ];
     const csvContent = [
       headers.join(","),
       ...transfers.map((t) =>
@@ -114,6 +144,7 @@ const Transfers = () => {
           t.toLocation,
           t.status,
           t.date,
+          t.priority,
         ].join(",")
       ),
     ].join("\n");
@@ -124,32 +155,26 @@ const Transfers = () => {
     link.href = url;
     link.setAttribute(
       "download",
-      `logistics_export_${new Date().getTime()}.csv`
+      `logistics_manifest_${new Date().getTime()}.csv`
     );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    triggerToast("Manifest Exported", "Logistics data saved successfully");
+    triggerToast("Export Successful", "Logistics data saved to CSV");
   };
 
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    setIsDeleting(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setTransfers(transfers.filter((t) => t.id !== deleteId));
-    triggerToast("Record Purged", `Manifest ${deleteId} removed from log`);
-    setDeleteId(null);
-    setIsDeleting(false);
-    if (viewingTransfer?.id === deleteId) setViewingTransfer(null);
-  };
-
-  // --- Search & Filter Logic ---
+  // --- Logic: Search & Pagination ---
   const filteredTransfers = useMemo(() => {
     return transfers.filter((t) => {
       const matchesSearch =
         t.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.id.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "All" || t.status === statusFilter;
+        t.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.fromLocation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.toLocation.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "All Statuses" || t.status === statusFilter;
+
       return matchesSearch && matchesStatus;
     });
   }, [searchTerm, statusFilter, transfers]);
@@ -162,30 +187,31 @@ const Transfers = () => {
 
   return (
     <Layout title="Logistics & Transit" icon={Truck}>
-      {/* DELETE MODAL */}
+      {/* 1. PURGE CONFIRMATION MODAL */}
       {deleteId && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div
             className={cn(
-              "p-8 rounded-[2.5rem] border max-w-sm w-full text-center shadow-2xl",
+              "p-8 rounded-[2.5rem] border max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95",
               isDark
                 ? "bg-[#0d0d12] border-white/10"
                 : "bg-white border-gray-200"
             )}
           >
             <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="text-red-500" size={32} />
+              <AlertOctagon className="text-red-500" size={32} />
             </div>
             <h3 className="text-xl font-black mb-2 tracking-tighter uppercase text-red-500">
               Purge Manifest?
             </h3>
             <p className="text-[10px] text-gray-500 mb-8 font-mono tracking-widest uppercase">
-              ID: {deleteId}
+              Irreversible removal of transfer: {deleteId}
             </p>
             <div className="flex gap-3">
               <Button
                 variant="ghost"
                 className="flex-1 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+                disabled={isDeleting}
                 onClick={() => setDeleteId(null)}
               >
                 Abort
@@ -206,7 +232,7 @@ const Transfers = () => {
         </div>
       )}
 
-      {/* TOAST */}
+      {/* Toast Notification */}
       {showToast && (
         <div className="fixed bottom-10 right-10 z-[400] animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div
@@ -230,8 +256,8 @@ const Transfers = () => {
         </div>
       )}
 
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      {/* Header */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
         <div>
           <h2
             className={cn(
@@ -242,14 +268,14 @@ const Transfers = () => {
             Logistics Center
           </h2>
           <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-            Asset Relocation & Deployments
+            Tracking asset relocation and deployment manifests
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={downloadCSV}
-            className="h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
           >
             <Download size={16} className="mr-2" /> Export Manifest
           </Button>
@@ -258,27 +284,27 @@ const Transfers = () => {
               setSelectedTransfer(null);
               setIsModalOpen(true);
             }}
-            className="h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 px-8"
+            className="flex-1 sm:flex-none h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 px-8"
           >
             <Plus size={16} className="mr-2" /> New Transfer
           </Button>
         </div>
       </div>
 
-      {/* SEARCH & FILTERS */}
+      {/* Search & Filter Bar */}
       <div
         className={cn(
-          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col md:flex-row gap-4",
+          "p-4 rounded-2xl mb-6 border shadow-sm flex flex-col lg:flex-row gap-4 items-center",
           isDark ? "bg-[#111118] border-white/5" : "bg-white border-gray-100"
         )}
       >
-        <div className="relative flex-1">
+        <div className="relative flex-1 w-full">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
             size={18}
           />
           <input
-            placeholder="Search Manifest or Asset..."
+            placeholder="Search manifest ID, asset, or location..."
             className={cn(
               "w-full pl-12 pr-4 py-3 rounded-xl text-sm outline-none transition-all",
               isDark
@@ -292,7 +318,8 @@ const Transfers = () => {
             }}
           />
         </div>
-        <div className="relative min-w-[180px]">
+
+        <div className="relative w-full lg:w-64">
           <Filter
             className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
             size={16}
@@ -304,21 +331,26 @@ const Transfers = () => {
               setCurrentPage(1);
             }}
             className={cn(
-              "w-full pl-12 pr-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer border transition-all",
+              "w-full pl-10 pr-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none transition-all appearance-none cursor-pointer",
               isDark
-                ? "bg-black/20 border-white/10 text-gray-400 focus:border-blue-500/50"
-                : "bg-gray-50 border-gray-200 text-gray-600"
+                ? "bg-black/20 border-white/10 text-white focus:border-blue-500/50"
+                : "bg-gray-50 border-gray-200 text-gray-700"
             )}
           >
-            <option value="All">ALL STATUSES</option>
-            <option value="Pending">PENDING</option>
-            <option value="In Transit">IN TRANSIT</option>
-            <option value="Completed">COMPLETED</option>
+            {statusOptions.map((opt) => (
+              <option
+                key={opt}
+                value={opt}
+                className={isDark ? "bg-[#0d0d12]" : "bg-white"}
+              >
+                {opt}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {/* TABLE */}
+      {/* Main Table */}
       <div
         className={cn(
           "rounded-[2rem] border overflow-hidden",
@@ -327,7 +359,7 @@ const Transfers = () => {
             : "bg-white shadow-sm border-gray-100"
         )}
       >
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr
@@ -339,7 +371,7 @@ const Transfers = () => {
                 )}
               >
                 <th className="px-8 py-5">Manifest ID</th>
-                <th className="px-8 py-5">Route Path</th>
+                <th className="px-8 py-5">Transit Path</th>
                 <th className="px-8 py-5">Status</th>
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
@@ -351,52 +383,52 @@ const Transfers = () => {
               )}
             >
               {paginated.length > 0 ? (
-                paginated.map((t) => (
+                paginated.map((item) => (
                   <tr
-                    key={t.id}
+                    key={item.id}
                     className={cn(
                       "text-sm transition-colors group",
                       isDark ? "hover:bg-white/[0.02]" : "hover:bg-blue-50/30"
                     )}
                   >
+                    <td className="px-8 py-5 font-mono text-[11px] text-blue-500 font-black tracking-tighter uppercase">
+                      {item.id}
+                    </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col">
-                        <span className="font-mono text-[11px] text-blue-500 font-black tracking-tighter uppercase">
-                          {t.id}
-                        </span>
                         <span
                           className={cn(
                             "font-black",
                             isDark ? "text-gray-200" : "text-gray-900"
                           )}
                         >
-                          {t.assetName}
+                          {item.assetName}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-tight">
-                        <span className="text-gray-500">{t.fromLocation}</span>
-                        <ArrowRightLeft size={12} className="text-blue-500" />
-                        <span
-                          className={isDark ? "text-gray-300" : "text-gray-700"}
-                        >
-                          {t.toLocation}
-                        </span>
+                        <div className="flex items-center gap-2 text-[9px] text-gray-500 uppercase font-black tracking-widest mt-1">
+                          <span>{item.fromLocation}</span>
+                          <ArrowRightLeft size={10} className="text-blue-500" />
+                          <span
+                            className={
+                              isDark ? "text-gray-400" : "text-gray-700"
+                            }
+                          >
+                            {item.toLocation}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-8 py-5">
                       <span
                         className={cn(
                           "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
-                          t.status === "Completed"
+                          item.status === "Completed"
                             ? "bg-green-500/10 text-green-500"
-                            : t.status === "In Transit"
+                            : item.status === "In Transit"
                             ? "bg-blue-500/10 text-blue-500"
                             : "bg-orange-500/10 text-orange-500"
                         )}
                       >
-                        {t.status}
+                        {item.status}
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">
@@ -405,7 +437,7 @@ const Transfers = () => {
                           variant="ghost"
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-blue-500"
-                          onClick={() => setViewingTransfer(t)}
+                          onClick={() => setViewingTransfer(item)}
                         >
                           <SquareArrowOutUpLeft size={14} />
                         </Button>
@@ -414,7 +446,7 @@ const Transfers = () => {
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-blue-500"
                           onClick={() => {
-                            setSelectedTransfer(t);
+                            setSelectedTransfer(item);
                             setIsModalOpen(true);
                           }}
                         >
@@ -424,7 +456,7 @@ const Transfers = () => {
                           variant="ghost"
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-red-500"
-                          onClick={() => setDeleteId(t.id)}
+                          onClick={() => setDeleteId(item.id)}
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -435,8 +467,8 @@ const Transfers = () => {
               ) : (
                 <tr>
                   <td colSpan={4} className="px-8 py-20 text-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 opacity-50">
-                      No matching manifests found
+                    <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                      No matching logistics records found
                     </p>
                   </td>
                 </tr>
@@ -445,17 +477,82 @@ const Transfers = () => {
           </table>
         </div>
 
-        {/* PAGINATION FOOTER */}
+        {/* MOBILE VIEW */}
+        <div className="md:hidden divide-y divide-white/5">
+          {paginated.map((item) => (
+            <div key={item.id} className="p-6 flex flex-col gap-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-mono text-[10px] text-blue-500 font-black tracking-tighter uppercase mb-1">
+                    {item.id}
+                  </p>
+                  <h4
+                    className={cn(
+                      "font-black text-lg",
+                      isDark ? "text-white" : "text-gray-900"
+                    )}
+                  >
+                    {item.assetName}
+                  </h4>
+                  <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                    {item.fromLocation} → {item.toLocation}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                    item.status === "Completed"
+                      ? "bg-green-500/10 text-green-500"
+                      : "bg-blue-500/10 text-blue-500"
+                  )}
+                >
+                  {item.status}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                  onClick={() => setViewingTransfer(item)}
+                >
+                  Details
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                  onClick={() => {
+                    setSelectedTransfer(item);
+                    setIsModalOpen(true);
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 text-red-500/50"
+                  onClick={() => setDeleteId(item.id)}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pagination */}
         <div
           className={cn(
-            "px-8 py-5 flex items-center justify-between border-t",
-            isDark ? "border-white/5 bg-white/5" : "border-gray-100"
+            "px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t",
+            isDark
+              ? "border-white/5 bg-white/5"
+              : "border-gray-100 bg-gray-50/30"
           )}
         >
-          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">
-            Index: {filteredTransfers.length} Manifests
+          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic">
+            TOTAL MANIFESTS: {filteredTransfers.length}
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="icon"
@@ -463,9 +560,9 @@ const Transfers = () => {
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={14} />
             </Button>
-            <span className="text-xs font-black font-mono w-12 text-center">
+            <span className="text-[11px] font-black font-mono">
               {currentPage} / {totalPages || 1}
             </span>
             <Button
@@ -475,21 +572,13 @@ const Transfers = () => {
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </Button>
           </div>
         </div>
       </div>
 
-      <TransfersModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-        initialData={selectedTransfer}
-        isDark={isDark}
-      />
-
-      {/* DRAWER/VIEWING SIDEBAR */}
+      {/* Detail Side Drawer */}
       {viewingTransfer && (
         <div className="fixed inset-0 z-[1000] flex justify-end">
           <div
@@ -498,10 +587,10 @@ const Transfers = () => {
           />
           <aside
             className={cn(
-              "relative w-full max-w-lg h-full p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l",
+              "relative w-full max-w-lg h-full p-8 md:p-12 shadow-2xl animate-in slide-in-from-right duration-300 border-l overflow-y-auto",
               isDark
                 ? "bg-[#0d0d12] border-white/10 text-white"
-                : "bg-white border-gray-200"
+                : "bg-white border-gray-200 text-gray-900"
             )}
           >
             <button
@@ -511,17 +600,86 @@ const Transfers = () => {
               <X size={24} />
             </button>
             <header className="mb-12 pt-6">
-              <h3 className="text-3xl font-black uppercase tracking-tighter italic mb-2">
+              <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-blue-500/50 text-blue-500 mb-6 inline-block uppercase tracking-[0.2em]">
+                Logistics Manifest
+              </span>
+              <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tighter uppercase">
+                {viewingTransfer.assetName}
+              </h2>
+              <p className="font-mono text-blue-500 text-sm font-black tracking-[0.1em] uppercase opacity-80">
                 {viewingTransfer.id}
-              </h3>
-              <p className="text-xs font-mono uppercase tracking-[0.3em] opacity-50">
-                Manifest Details
               </p>
             </header>
-            {/* Additional viewing details would go here */}
+
+            <section className="space-y-8">
+              <div
+                className={cn(
+                  "rounded-3xl p-6 md:p-8 border shadow-inner",
+                  isDark
+                    ? "bg-white/5 border-white/5"
+                    : "bg-gray-50 border-gray-100"
+                )}
+              >
+                <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                  <MapPin size={16} /> Transit Details
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 text-sm">
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Source Location
+                    </p>
+                    <p className="font-black text-lg">
+                      {viewingTransfer.fromLocation}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Destination
+                    </p>
+                    <p className="font-black text-lg">
+                      {viewingTransfer.toLocation}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Transport Status
+                    </p>
+                    <p className="font-black text-lg uppercase text-blue-500">
+                      {viewingTransfer.status}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+                      Dispatch Date
+                    </p>
+                    <p className="font-mono font-black">
+                      {viewingTransfer.date}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-8 border-t border-white/5 space-y-4">
+                <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-blue-900/20">
+                  <ShieldCheck size={18} className="mr-3" /> Verify Waybill
+                  Manifest
+                </Button>
+                <p className="text-[9px] text-center text-gray-500 font-black uppercase tracking-widest italic">
+                  Electronic chain of custody logged
+                </p>
+              </div>
+            </section>
           </aside>
         </div>
       )}
+
+      <TransfersModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSave}
+        initialData={selectedTransfer}
+        isDark={isDark}
+      />
     </Layout>
   );
 };
