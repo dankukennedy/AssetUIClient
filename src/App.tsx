@@ -19,6 +19,9 @@ import Reports from './pages/Reports';
 import { ToastProvider } from './context/ToastContext';
 import AssetUsersPage from './pages/AssetUsers';
 import AuthUsersPage from './pages/AuthUsers';
+import ContactUs from './pages/ContactUs';
+import About from './pages/About';
+import UserManual from './pages/UserManual';
 
 
 
@@ -43,6 +46,9 @@ const App = () => {
             <Route path="/disposal" element={<Disposal />} />
             <Route path="/allocation" element={<AllocationManagement />} />
             <Route path="/allocation" element={<AllocationManagement />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/manual" element={<UserManual />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/allocations" element={<AllocationManagement />} />
             <Route path="/archives" element={<ArchivesPage />} />
