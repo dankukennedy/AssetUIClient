@@ -49,7 +49,11 @@ const AssetUsersPage = () => {
   const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Edit Tracking States
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editingUserEmail, setEditingUserEmail] = useState<string | null>(null);
+
   const [viewingUser, setViewingUser] = useState<User | null>(null);
 
   // Custom Purge States
@@ -108,16 +112,20 @@ const AssetUsersPage = () => {
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`,
     };
 
-    if (selectedUser) {
-      setUsers(
-        users.map((u) => (u.email === selectedUser.email ? userWithAvatar : u))
+    if (editingUserEmail) {
+      // Logic Fix: Map through users and find the one that matches the ORIGINAL email
+      setUsers((prev) =>
+        prev.map((u) => (u.email === editingUserEmail ? userWithAvatar : u))
       );
       triggerToast("Identity Updated", "User record synchronized");
     } else {
       setUsers([userWithAvatar, ...users]);
       triggerToast("Subject Registered", "New identity added to registry");
     }
+
     setIsModalOpen(false);
+    setEditingUserEmail(null);
+    setSelectedUser(null);
   };
 
   const confirmPurge = async () => {
@@ -286,6 +294,7 @@ const AssetUsersPage = () => {
           </Button>
           <Button
             onClick={() => {
+              setEditingUserEmail(null);
               setSelectedUser(null);
               setIsModalOpen(true);
             }}
@@ -460,6 +469,7 @@ const AssetUsersPage = () => {
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-blue-500"
                           onClick={() => {
+                            setEditingUserEmail(user.email);
                             setSelectedUser(user);
                             setIsModalOpen(true);
                           }}
@@ -539,6 +549,7 @@ const AssetUsersPage = () => {
                   variant="outline"
                   className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black"
                   onClick={() => {
+                    setEditingUserEmail(user.email);
                     setSelectedUser(user);
                     setIsModalOpen(true);
                   }}
@@ -689,7 +700,11 @@ const AssetUsersPage = () => {
 
       <AssetUserModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingUserEmail(null);
+          setSelectedUser(null);
+        }}
         onSave={handleSave}
         initialData={selectedUser}
         isDark={isDark}

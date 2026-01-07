@@ -19,7 +19,7 @@ interface UserModalProps {
   isDark: boolean;
 }
 
-export const UserModal = ({
+export const AssetUserModal = ({
   isOpen,
   onClose,
   onSave,
@@ -35,16 +35,21 @@ export const UserModal = ({
     avatar: "",
   });
 
+  // Synchronize internal state with initialData when modal opens
   useEffect(() => {
-    if (initialData) setFormData(initialData);
-    else
-      setFormData({
-        name: "",
-        email: "",
-        role: "User",
-        status: "Active",
-        avatar: "",
-      });
+    if (isOpen) {
+      if (initialData) {
+        setFormData(initialData);
+      } else {
+        setFormData({
+          name: "",
+          email: "",
+          role: "User",
+          status: "Active",
+          avatar: "",
+        });
+      }
+    }
   }, [initialData, isOpen]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,27 +62,34 @@ export const UserModal = ({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div
         className={cn(
-          "w-full max-w-md rounded-[2.5rem] p-8 border animate-in zoom-in duration-200",
-          isDark ? "bg-[#0d0d12] border-white/10 text-white" : "bg-white"
+          "w-full max-w-md rounded-[2.5rem] p-8 border animate-in zoom-in duration-200 shadow-2xl",
+          isDark ? "bg-[#0d0d12] border-white/10 text-white" : "bg-white border-gray-200"
         )}
       >
-        <div className="flex justify-center mb-8">
+        {/* Header & Avatar Upload */}
+        <div className="flex flex-col items-center mb-8">
           <div
-            className="relative group cursor-pointer"
+            className="relative group cursor-pointer mb-4"
             onClick={() => fileInputRef.current?.click()}
           >
-            <div className="w-24 h-24 rounded-[2rem] border-4 border-blue-500/20 overflow-hidden flex items-center justify-center bg-black/20">
+            <div className={cn(
+                "w-24 h-24 rounded-[2rem] border-4 overflow-hidden flex items-center justify-center transition-all",
+                isDark ? "border-white/5 bg-white/5" : "border-gray-100 bg-gray-50"
+            )}>
               {formData.avatar ? (
                 <img
                   src={formData.avatar}
                   className="w-full h-full object-cover"
+                  alt="Profile"
                 />
               ) : (
-                <Plus className="text-blue-500" />
+                <Plus size={32} className="text-blue-500" />
               )}
             </div>
             <div className="absolute inset-0 bg-blue-600/60 rounded-[2rem] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -91,7 +103,11 @@ export const UserModal = ({
               onChange={handleAvatarChange}
             />
           </div>
+          <h3 className="font-black uppercase tracking-tighter text-lg">
+            {initialData ? "Modify Identity" : "New Registration"}
+          </h3>
         </div>
+
         <form
           className="space-y-4"
           onSubmit={(e) => {
@@ -99,73 +115,94 @@ export const UserModal = ({
             onSave(formData);
           }}
         >
-          <input
-            required
-            placeholder="Full Name"
-            className={cn(
-              "w-full px-4 py-3 rounded-xl border outline-none",
-              isDark
-                ? "bg-white/5 border-white/10 focus:border-blue-500/50"
-                : "bg-gray-50"
-            )}
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-          <input
-            required
-            type="email"
-            placeholder="Email"
-            className={cn(
-              "w-full px-4 py-3 rounded-xl border outline-none font-mono",
-              isDark
-                ? "bg-white/5 border-white/10 focus:border-blue-500/50"
-                : "bg-gray-50"
-            )}
-            value={formData.email}
-            onChange={(e) =>
-              setFormData({ ...formData, email: e.target.value })
-            }
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <select
+          {/* Name Input */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-gray-500 ml-1 tracking-widest">Legal Name</label>
+            <input
+              required
+              placeholder="e.g. Alexander Pierce"
               className={cn(
-                "px-4 py-3 rounded-xl border outline-none",
-                isDark ? "bg-white/5 border-white/10" : "bg-gray-50"
+                "w-full px-4 py-3 rounded-xl border outline-none transition-all",
+                isDark
+                  ? "bg-white/5 border-white/10 focus:border-blue-500/50 text-white"
+                  : "bg-gray-50 border-gray-200 focus:border-blue-500"
               )}
-              value={formData.role}
-              onChange={(e) =>
-                setFormData({ ...formData, role: e.target.value })
-              }
-            >
-              <option value="Administrator">Admin</option>
-              <option value="Manager">Manager</option>
-              <option value="User">User</option>
-            </select>
-            <select
-              className={cn(
-                "px-4 py-3 rounded-xl border outline-none",
-                isDark ? "bg-white/5 border-white/10" : "bg-gray-50"
-              )}
-              value={formData.status}
-              onChange={(e) =>
-                setFormData({ ...formData, status: e.target.value })
-              }
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
           </div>
-          <div className="flex gap-3 pt-4">
+
+          {/* Email Input */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-gray-500 ml-1 tracking-widest">Network Email</label>
+            <input
+              required
+              type="email"
+              placeholder="name@company.io"
+              className={cn(
+                "w-full px-4 py-3 rounded-xl border outline-none font-mono text-sm transition-all",
+                isDark
+                  ? "bg-white/5 border-white/10 focus:border-blue-500/50 text-blue-400"
+                  : "bg-gray-50 border-gray-200 focus:border-blue-500 text-blue-600"
+              )}
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Role Select */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-1 tracking-widest">Access Level</label>
+              <select
+                className={cn(
+                  "w-full px-4 py-3 rounded-xl border outline-none font-bold text-xs uppercase tracking-tight",
+                  isDark ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"
+                )}
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              >
+                <option value="Administrator">Administrator</option>
+                <option value="Manager">Manager</option>
+                <option value="Lead Designer">Lead Designer</option>
+                <option value="Developer">Developer</option>
+                <option value="User">Standard User</option>
+              </select>
+            </div>
+
+            {/* Status Select */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-1 tracking-widest">Account State</label>
+              <select
+                className={cn(
+                  "w-full px-4 py-3 rounded-xl border outline-none font-bold text-xs uppercase tracking-tight",
+                  isDark ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"
+                )}
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-6">
             <Button
               type="button"
               variant="ghost"
-              className="flex-1"
+              className="flex-1 rounded-2xl font-black text-[10px] uppercase tracking-widest"
               onClick={onClose}
             >
-              Cancel
+              Abort
             </Button>
-            <Button type="submit" className="flex-[2] bg-blue-600">
-              Save Identity
+            <Button 
+              type="submit" 
+              className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
+            >
+              Commit Identity
             </Button>
           </div>
         </form>
