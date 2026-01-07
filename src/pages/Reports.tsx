@@ -3,8 +3,10 @@ import { Layout } from "../component/Layout";
 import {
   BarChart3,
   Download,
+  Zap,
   CheckCircle2,
   Trash2,
+  Clock,
   ShieldCheck,
   Search,
   ChevronLeft,
@@ -13,17 +15,18 @@ import {
   AlertOctagon,
   Loader2,
   SquareArrowOutUpLeft,
+  Database,
   Plus,
   Filter,
-  FileText,
-  Database,
+  Activity,
+  FileSpreadsheet,
+  Monitor,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
 import { Button } from "../component/ui/button";
 import { ReportsModal } from "../models/ReportsModal";
 
-// --- Types ---
 interface Report {
   id: string;
   title: string;
@@ -41,7 +44,7 @@ const Reports = () => {
 
   // --- States ---
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All Formats");
+  const [typeFilter, setTypeFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingReport, setViewingReport] = useState<Report | null>(null);
@@ -50,8 +53,9 @@ const Reports = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Generation / Toast States
   const [isCompiling, setIsCompiling] = useState(false);
+  const [compileProgress, setCompileProgress] = useState(0);
+
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState({ title: "", sub: "" });
 
@@ -83,9 +87,8 @@ const Reports = () => {
 
   // Derived unique types for filter
   const typeOptions = useMemo(() => {
-    const types = new Set(reports.map((r) => r.type));
-    return ["All Formats", ...Array.from(types)];
-  }, [reports]);
+    return ["All", "PDF", "CSV", "JSON"];
+  }, []);
 
   // --- Logic: Trigger Toast ---
   const triggerToast = (title: string, sub: string) => {
@@ -95,15 +98,21 @@ const Reports = () => {
   };
 
   // --- Handlers ---
-  const handleGenerate = (data: any) => {
+  const triggerReportGeneration = (data: any) => {
     setIsModalOpen(false);
     setIsCompiling(true);
+    setCompileProgress(0);
 
-    // Simulate compilation delay
+    const interval = setInterval(() => {
+      setCompileProgress((prev) =>
+        prev >= 100 ? (clearInterval(interval), 100) : prev + 5
+      );
+    }, 100);
+
     setTimeout(() => {
       const newReport: Report = {
-        id: `REP-0${reports.length + 1}`,
-        title: data.title || "System Analysis",
+        id: `REP-00${reports.length + 1}`,
+        title: data.title || "New System Analysis",
         date: new Date().toISOString().split("T")[0],
         type: data.type || "PDF",
         size: `${(Math.random() * 5).toFixed(1)} MB`,
@@ -112,9 +121,9 @@ const Reports = () => {
       setIsCompiling(false);
       triggerToast(
         "Generation Complete",
-        "Intel manifest committed to registry"
+        "Intel manifest committed to core registry"
       );
-    }, 1500);
+    }, 2200);
   };
 
   const confirmDelete = async () => {
@@ -123,14 +132,14 @@ const Reports = () => {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     setReports(reports.filter((r) => r.id !== deleteId));
-    triggerToast("Record Purged", `Report ${deleteId} removed from disk`);
+    triggerToast("Record Purged", `Report ${deleteId} removed from registry`);
 
     setDeleteId(null);
     setIsDeleting(false);
     if (viewingReport?.id === deleteId) setViewingReport(null);
   };
 
-  const downloadArchiveCSV = () => {
+  const downloadCSV = () => {
     const headers = ["ID", "Title", "Date", "Format", "Size"];
     const csvContent = [
       headers.join(","),
@@ -143,11 +152,11 @@ const Reports = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `intel_archive_${new Date().getTime()}.csv`);
+    link.setAttribute("download", `intel_report_${new Date().getTime()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    triggerToast("Archive Exported", "Analytical index saved to CSV");
+    triggerToast("Data Exported", "Intel registry saved as CSV");
   };
 
   // --- Logic: Search & Pagination ---
@@ -157,7 +166,7 @@ const Reports = () => {
         r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesType = typeFilter === "All Formats" || r.type === typeFilter;
+      const matchesType = typeFilter === "All" || r.type === typeFilter;
 
       return matchesSearch && matchesType;
     });
@@ -171,6 +180,16 @@ const Reports = () => {
 
   return (
     <Layout title="Analytics Hub" icon={BarChart3}>
+      {/* GLOBAL OVERLAYS: Compilation Progress */}
+      {isCompiling && (
+        <div className="fixed top-0 left-0 w-full h-1 z-[2000] bg-blue-500/10">
+          <div
+            className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] transition-all duration-150"
+            style={{ width: `${compileProgress}%` }}
+          />
+        </div>
+      )}
+
       {/* 1. PURGE CONFIRMATION MODAL */}
       {deleteId && (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -189,7 +208,7 @@ const Reports = () => {
               Purge Report?
             </h3>
             <p className="text-[10px] text-gray-500 mb-8 font-mono tracking-widest uppercase">
-              Permanently removing file: {deleteId}
+              Permanently removing report: {deleteId}
             </p>
             <div className="flex gap-3">
               <Button
@@ -242,43 +261,103 @@ const Reports = () => {
 
       {/* Header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
-        <div>
-          <h2
-            className={cn(
-              "text-2xl font-black tracking-tight uppercase",
-              isDark ? "text-white" : "text-gray-900"
-            )}
-          >
-            Intel Archive
-          </h2>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Activity className="text-blue-500" size={20} />
+            </div>
+            <h2
+              className={cn(
+                "text-2xl font-black tracking-tight uppercase",
+                isDark ? "text-white" : "text-gray-900"
+              )}
+            >
+              Intelligence <span className="text-blue-500">Registry</span>
+            </h2>
+          </div>
           <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-            Compiling system analytics and compliance manifests
+            Strategic Data Compilation & Asset Compliance
           </p>
         </div>
         <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
-            onClick={downloadArchiveCSV}
+            onClick={downloadCSV}
             className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 hover:bg-slate-500/10 font-black text-[10px] uppercase tracking-widest"
           >
-            <Download size={16} className="mr-2" /> Export Archive
+            <FileSpreadsheet size={16} className="mr-2" /> Export Dataset
           </Button>
           <Button
             onClick={() => setIsModalOpen(true)}
-            disabled={isCompiling}
             className="flex-1 sm:flex-none h-12 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20"
           >
-            {isCompiling ? (
-              <>
-                <Loader2 className="mr-2 animate-spin" size={16} /> Compiling...
-              </>
-            ) : (
-              <>
-                <Plus size={16} className="mr-2" /> Generate Report
-              </>
-            )}
+            <Plus size={16} className="mr-2" /> Create Report
           </Button>
         </div>
+      </div>
+
+      {/* Analytics Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {[
+          {
+            label: "Data Nodes",
+            val: "1,204",
+            icon: Database,
+            color: "text-blue-500",
+            bg: "bg-blue-500/5",
+          },
+          {
+            label: "Sync Status",
+            val: "Optimal",
+            icon: Zap,
+            color: "text-emerald-500",
+            bg: "bg-emerald-500/5",
+          },
+          {
+            label: "Compliance",
+            val: "98.2%",
+            icon: ShieldCheck,
+            color: "text-purple-500",
+            bg: "bg-purple-500/5",
+          },
+          {
+            label: "Latency",
+            val: "14ms",
+            icon: Clock,
+            color: "text-amber-500",
+            bg: "bg-amber-500/5",
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className={cn(
+              "p-6 rounded-[2rem] border transition-all hover:border-blue-500/30",
+              isDark
+                ? "bg-[#0d0d12] border-white/5"
+                : "bg-white border-slate-100 shadow-sm"
+            )}
+          >
+            <div
+              className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center mb-4",
+                stat.bg
+              )}
+            >
+              <stat.icon size={20} className={stat.color} />
+            </div>
+            <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1">
+              {stat.label}
+            </p>
+            <p
+              className={cn(
+                "text-xl font-black tracking-tighter",
+                isDark ? "text-white" : "text-slate-900"
+              )}
+            >
+              {stat.val}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Search & Filter Bar */}
@@ -294,7 +373,7 @@ const Reports = () => {
             size={18}
           />
           <input
-            placeholder="Search manifests by title or ID..."
+            placeholder="Search report index by title or ID..."
             className={cn(
               "w-full pl-12 pr-4 py-3 rounded-xl text-sm outline-none transition-all",
               isDark
@@ -361,9 +440,9 @@ const Reports = () => {
                     : "bg-gray-50 text-gray-400"
                 )}
               >
-                <th className="px-8 py-5">Registry ID</th>
-                <th className="px-8 py-5">Manifest Profile</th>
-                <th className="px-8 py-5">File Size</th>
+                <th className="px-8 py-5">Intel ID</th>
+                <th className="px-8 py-5">Analysis Profile</th>
+                <th className="px-8 py-5">Format</th>
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
@@ -396,13 +475,22 @@ const Reports = () => {
                           {report.title}
                         </span>
                         <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
-                          {report.date} • {report.type}
+                          {report.date} • {report.size}
                         </span>
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                      <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[9px] font-black uppercase tracking-widest">
-                        {report.size}
+                      <span
+                        className={cn(
+                          "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                          report.type === "PDF"
+                            ? "bg-red-500/10 text-red-500"
+                            : report.type === "CSV"
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : "bg-blue-500/10 text-blue-500"
+                        )}
+                      >
+                        {report.type}
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">
@@ -414,6 +502,19 @@ const Reports = () => {
                           onClick={() => setViewingReport(report)}
                         >
                           <SquareArrowOutUpLeft size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-400 hover:text-blue-500"
+                          onClick={() =>
+                            triggerToast(
+                              "Download Initiated",
+                              "Retrieving secure document..."
+                            )
+                          }
+                        >
+                          <Download size={14} />
                         </Button>
                         <Button
                           variant="ghost"
@@ -431,7 +532,7 @@ const Reports = () => {
                 <tr>
                   <td colSpan={4} className="px-8 py-20 text-center">
                     <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-                      No matching records found in archive
+                      No matching intelligence records found
                     </p>
                   </td>
                 </tr>
@@ -459,11 +560,20 @@ const Reports = () => {
                       {report.title}
                     </h4>
                     <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
-                      {report.type} • {report.size}
+                      {report.date} • {report.size}
                     </p>
                   </div>
-                  <span className="text-[9px] font-mono text-gray-500">
-                    {report.date}
+                  <span
+                    className={cn(
+                      "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                      report.type === "PDF"
+                        ? "bg-red-500/10 text-red-500"
+                        : report.type === "CSV"
+                        ? "bg-emerald-500/10 text-emerald-500"
+                        : "bg-blue-500/10 text-blue-500"
+                    )}
+                  >
+                    {report.type}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -472,7 +582,19 @@ const Reports = () => {
                     className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
                     onClick={() => setViewingReport(report)}
                   >
-                    View Manifest
+                    Inspect
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    onClick={() =>
+                      triggerToast(
+                        "Download Initiated",
+                        "Retrieving secure document..."
+                      )
+                    }
+                  >
+                    Download
                   </Button>
                   <Button
                     variant="ghost"
@@ -488,7 +610,7 @@ const Reports = () => {
           ) : (
             <div className="py-20 text-center">
               <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-                No matching reports
+                No matching hardware records
               </p>
             </div>
           )}
@@ -504,7 +626,7 @@ const Reports = () => {
           )}
         >
           <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic">
-            TOTAL MANIFESTS: {filteredReports.length}
+            TOTAL RECORDS: {filteredReports.length}
           </span>
           <div className="flex items-center gap-4">
             <Button
@@ -555,7 +677,7 @@ const Reports = () => {
             </button>
             <header className="mb-12 pt-6">
               <span className="px-4 py-1.5 rounded-full text-[9px] font-black border border-blue-500/50 text-blue-500 mb-6 inline-block uppercase tracking-[0.2em]">
-                Intel Manifest
+                Intel Report Analysis
               </span>
               <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tighter uppercase">
                 {viewingReport.title}
@@ -575,12 +697,12 @@ const Reports = () => {
                 )}
               >
                 <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
-                  <Database size={16} /> Extraction Metadata
+                  <Monitor size={16} /> Technical Metadata
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 text-sm">
                   <div>
                     <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      Format Variant
+                      File Format
                     </p>
                     <p className="font-black text-lg">{viewingReport.type}</p>
                   </div>
@@ -594,28 +716,37 @@ const Reports = () => {
                   </div>
                   <div>
                     <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      Compilation Date
+                      Generation Date
                     </p>
-                    <p className="font-mono font-black">{viewingReport.date}</p>
+                    <p className="font-black tracking-tight">
+                      {viewingReport.date}
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-500 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
-                      Audit Security
+                      Security Level
                     </p>
-                    <p className="font-black tracking-tight text-green-500">
-                      VERIFIED
+                    <p className="font-mono font-black text-emerald-500">
+                      ENCRYPTED
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="pt-8 border-t border-white/5 space-y-4">
-                <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-blue-900/20">
-                  <ShieldCheck size={18} className="mr-3" /> Execute Data
-                  Download
+                <Button
+                  className="w-full justify-center bg-blue-600 hover:bg-blue-700 font-black text-[10px] uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-blue-900/20"
+                  onClick={() =>
+                    triggerToast(
+                      "Download Initiated",
+                      "Retrieving secure document..."
+                    )
+                  }
+                >
+                  <Download size={18} className="mr-3" /> Download Document
                 </Button>
                 <p className="text-[9px] text-center text-gray-500 font-black uppercase tracking-widest italic">
-                  End-to-end encrypted manifest delivery
+                  Data access is logged per security protocol v4.0
                 </p>
               </div>
             </section>
@@ -623,11 +754,11 @@ const Reports = () => {
         </div>
       )}
 
-      {/* Generate Report Modal */}
+      {/* Reports Modal */}
       <ReportsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleGenerate}
+        onSave={triggerReportGeneration}
         isDark={isDark}
       />
     </Layout>
