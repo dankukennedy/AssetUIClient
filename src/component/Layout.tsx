@@ -20,18 +20,18 @@ interface LayoutProps {
 export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   return (
     <div className={cn(
-      "flex h-screen font-sans transition-colors duration-300 overflow-hidden",
+      "flex h-screen font-serif font-bold transition-colors duration-300 overflow-hidden",
       isDark ? "dark bg-[#0a0a0a] text-white" : "bg-[#f8fafc] text-gray-800"
-    )}>
-      
+     )}>
+
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -42,7 +42,7 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
         "fixed inset-y-0 left-0 w-64 flex flex-col shrink-0 border-r shadow-2xl z-50 transition-transform duration-300 lg:relative lg:translate-x-0",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
         isDark ? "bg-[#111118] border-white/5" : "bg-white border-gray-200"
-      )}>
+       )}>
         {/* Sidebar Header */}
         <div className={cn("p-6 flex items-center justify-between border-b", isDark ? "border-white/5" : "border-gray-100")}>
           <div className="flex items-center gap-3">
@@ -58,13 +58,16 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             <X size={20} />
           </Button>
         </div>
-        
+
         <nav className="flex-1 mt-4 overflow-y-auto custom-scrollbar px-2">
-          <SidebarItem icon={LayoutDashboard} label="Dashboard" path="/" onMobileClick={() => setIsMobileMenuOpen(false)} />
-          
           <SidebarItem 
-            icon={Box} 
-            label="Asset Management" 
+          icon={LayoutDashboard} 
+          label="Dashboard" path="/" 
+          onMobileClick={() => setIsMobileMenuOpen(false)} />
+
+          <SidebarItem
+            icon={Box}
+            label="Asset Management"
             subItems={[
               { label: 'All Assets', icon: Box, path: '/assets' },
               { label: 'Blocks', icon: Building2, path: '/blocks' },
@@ -74,9 +77,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             ]}
           />
 
-          <SidebarItem 
-            icon={Settings} 
-            label="Operations" 
+          <SidebarItem
+            icon={Settings}
+            label="Operations"
             subItems={[
               { label: 'Allocations', icon: FileText, path: '/allocations' },
               { label: 'Transfers', icon: Repeat, path: '/transfers' },
@@ -84,9 +87,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             ]}
           />
 
-          <SidebarItem 
-            icon={Database} 
-            label="System" 
+          <SidebarItem
+            icon={Database}
+            label="System"
             subItems={[
               { label: 'Archives', icon: Database, path: '/archives' },
               { label: 'Reports', icon: BarChart3, path: '/reports' },
@@ -94,9 +97,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             ]}
           />
 
-          <SidebarItem 
-            icon={ShieldCheck} 
-            label="Administration" 
+          <SidebarItem
+            icon={ShieldCheck}
+            label="Administration"
             subItems={[
               { label: 'AuthUsers', icon: UserPlus, path: '/authUsers' },
               { label: 'Settings', icon: Settings, path: '/settings' },
@@ -104,9 +107,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             ]}
           />
 
-          <SidebarItem 
-            icon={Info} 
-            label="Dev - Info" 
+          <SidebarItem
+            icon={Info}
+            label="Dev - Info"
             subItems={[
               { label: 'User Manual', icon: BookOpen, path: '/manual' },
               { label: 'About', icon: MessageSquare, path: '/about' },
@@ -124,10 +127,10 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
         )}>
           <div className="flex items-center gap-3">
              {/* Mobile Menu Toggle */}
-             <Button 
-                variant="ghost" 
-                size="icon" 
-                className="lg:hidden mr-2" 
+             <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden mr-2"
                 onClick={() => setIsMobileMenuOpen(true)}
              >
                 <Menu size={24} />
@@ -144,9 +147,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-6">
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
                 className="rounded-full"
               >
@@ -158,10 +161,10 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
                 <p className={cn("text-xs font-bold", isDark ? "text-white" : "text-gray-900")}>Edem</p>
                 <p className="text-[10px] text-gray-500 uppercase">Admin</p>
               </div>
-              <img 
-                src="https://ui-avatars.com/api/?name=Edem&background=0D8ABC&color=fff" 
-                className="w-8 h-8 rounded-full ring-2 ring-blue-500/20" 
-                alt="User" 
+              <img
+                src="https://ui-avatars.com/api/?name=Edem&background=0D8ABC&color=fff"
+                className="w-8 h-8 rounded-full ring-2 ring-blue-500/20"
+                alt="User"
               />
             </div>
           </div>
