@@ -69,7 +69,7 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
               { label: 'All Assets', icon: Box, path: '/assets' },
               { label: 'Blocks', icon: Building2, path: '/blocks' },
               { label: 'Departments', icon: Box, path: '/departments' },
-              { label: 'Asset Users', icon: Users, path: '/users' },
+              { label: 'Asset Users', icon: Users, path: '/assetUsers' },
               { label: 'Audit Items', icon: ClipboardCheck, path: '/audit' }
             ]}
           />
@@ -78,9 +78,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             icon={Settings} 
             label="Operations" 
             subItems={[
-              { label: 'Allocations', icon: FileText, path: '/operations/allocations' },
-              { label: 'Transfers', icon: Repeat, path: '/operations/transfers' },
-              { label: 'Disposal', icon: Trash2, path: '/operations/disposal' }
+              { label: 'Allocations', icon: FileText, path: '/allocations' },
+              { label: 'Transfers', icon: Repeat, path: '/transfers' },
+              { label: 'Disposal', icon: Trash2, path: '/disposal' }
             ]}
           />
 
@@ -88,9 +88,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             icon={Database} 
             label="System" 
             subItems={[
-              { label: 'Archive', icon: Database, path: '/system/archive' },
-              { label: 'Reports', icon: BarChart3, path: '/system/reports' },
-              { label: 'Decommission', icon: XCircle, path: '/system/decommission' }
+              { label: 'Archives', icon: Database, path: '/archives' },
+              { label: 'Reports', icon: BarChart3, path: '/reports' },
+              { label: 'Decommission', icon: XCircle, path: '/decommission' }
             ]}
           />
 
@@ -108,9 +108,9 @@ export const Layout = ({ children, title, icon: TitleIcon }: LayoutProps) => {
             icon={Info} 
             label="Dev - Info" 
             subItems={[
-              { label: 'User Manual', icon: BookOpen, path: '/info/manual' },
-              { label: 'About', icon: MessageSquare, path: '/info/about' },
-              { label: 'Contact Us', icon: Phone, path: '/info/contact' }
+              { label: 'User Manual', icon: BookOpen, path: '/manual' },
+              { label: 'About', icon: MessageSquare, path: '/about' },
+              { label: 'Contact Us', icon: Phone, path: '/contact' }
             ]}
           />
         </nav>

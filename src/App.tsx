@@ -10,27 +10,42 @@ import Users from './pages/Users';
 import Settings from './pages/Settings';
 import AccountSettings from './pages/AccountSettings';
 import { ThemeProvider } from './component/theme-provider';
+import ArchivesPage from './pages/Archives';
+import Transfers from './pages/Transfers';
+import Decommission from './pages/Decommission';
+import Disposal from './pages/Disposals';
+import AllocationManagement from './pages/Allocation';
+import Reports from './pages/Reports';
+import { ToastProvider } from './context/ToastContext';
+
 
 
 const App = () => {
 
   
   return (
-    <ThemeProvider >
-
-     <Router>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/assets" element={<AssetManagement />} />
-        <Route path="/departments" element={<Department />} />
-        <Route path="/blocks" element={<Block />} />
-        <Route path="/users" element={<Users />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/account-settings" element={<AccountSettings />} />
-      </Routes>
-    </Router>
+    <ThemeProvider>
+      <ToastProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/assets" element={<AssetManagement />} />
+            <Route path="/departments" element={<Department />} />
+            <Route path="/blocks" element={<Block />} />
+            <Route path="/assetUsers" element={<Users />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/account-settings" element={<AccountSettings />} />
+            <Route path="/transfers" element={<Transfers />} />
+            <Route path="/decommission" element={<Decommission />} />
+            <Route path="/disposal" element={<Disposal />} />
+            <Route path="/allocation" element={<AllocationManagement />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/allocations" element={<AllocationManagement />} />
+            <Route path="/archives" element={<ArchivesPage />} />
+          </Routes>
+        </Router>
+      </ToastProvider>
     </ThemeProvider>
-
   );
 };
 
