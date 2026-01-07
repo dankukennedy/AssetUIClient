@@ -22,6 +22,7 @@ import AuthUsersPage from './pages/AuthUsers';
 import ContactUs from './pages/ContactUs';
 import About from './pages/About';
 import UserManual from './pages/UserManual';
+import AuditPage from './pages/Audit';
 
 
 
@@ -48,6 +49,7 @@ const App = () => {
             <Route path="/allocation" element={<AllocationManagement />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/about" element={<About />} />
+            <Route path="/audit" element={<AuditPage />} />
             <Route path="/manual" element={<UserManual />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/allocations" element={<AllocationManagement />} />
