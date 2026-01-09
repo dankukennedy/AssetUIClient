@@ -18,6 +18,8 @@ import {
   Loader2,
   Filter,
   ArrowRightLeft,
+  Edit3,
+  InfoIcon,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
@@ -412,7 +414,10 @@ const AllocationManagement = () => {
                           className="h-9 w-9 text-gray-400 hover:text-blue-500"
                           onClick={() => setViewingAlloc(alloc)}
                         >
-                          <SquareArrowOutUpLeft size={14} />
+                          <SquareArrowOutUpLeft
+                            size={14}
+                            className="h-8 w-8 text-teal-500"
+                          />
                         </Button>
                         <Button
                           variant="ghost"
@@ -423,7 +428,10 @@ const AllocationManagement = () => {
                             setIsModalOpen(true);
                           }}
                         >
-                          <Edit2 size={14} />
+                          <Edit3
+                            size={14}
+                            className="h-8 w-8 text-yellow-500"
+                          />
                         </Button>
                         <Button
                           variant="ghost"
@@ -431,7 +439,7 @@ const AllocationManagement = () => {
                           className="h-9 w-9 text-gray-400 hover:text-amber-500"
                           onClick={() => setRevokingId(alloc.id)}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={14} className="h-8 w-8 text-red-500" />
                         </Button>
                       </div>
                     </td>
@@ -475,20 +483,20 @@ const AllocationManagement = () => {
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                  className="flex-1 h-11 bg-teal-300 border-white/10 text-[9px] uppercase font-black tracking-widest"
                   onClick={() => setViewingAlloc(alloc)}
                 >
-                  Details
+                  Details <InfoIcon className="ml-2 text-teal-900" />
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                  className="flex-1 bg-yellow-100 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
                   onClick={() => {
                     setSelectedAlloc(alloc);
                     setIsModalOpen(true);
                   }}
                 >
-                  Edit
+                  Update <Edit3 className="ml-2 text-amber-900" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -496,7 +504,7 @@ const AllocationManagement = () => {
                   className="h-11 w-11 text-amber-500/50 hover:text-amber-500"
                   onClick={() => setRevokingId(alloc.id)}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={16} className="h-8 w-8 text-red-500" />
                 </Button>
               </div>
             </div>

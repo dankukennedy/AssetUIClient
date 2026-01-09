@@ -17,6 +17,8 @@ import {
   Database,
   Filter,
   FileText,
+  Edit3,
+  InfoIcon,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
@@ -385,7 +387,10 @@ const Archives = () => {
                         className="h-9 w-9 text-gray-400 hover:text-amber-500"
                         onClick={() => setViewingRecord(r)}
                       >
-                        <SquareArrowOutUpLeft size={14} />
+                        <SquareArrowOutUpLeft
+                          size={14}
+                          className="h-8 w-8 text-teal-500"
+                        />
                       </Button>
                       <Button
                         variant="ghost"
@@ -396,7 +401,7 @@ const Archives = () => {
                           setIsModalOpen(true);
                         }}
                       >
-                        <Edit2 size={14} />
+                        <Edit3 size={14} className="h-8 w-8 text-yellow-500" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -404,7 +409,7 @@ const Archives = () => {
                         className="h-9 w-9 text-gray-400 hover:text-red-500"
                         onClick={() => setDeleteId(r.id)}
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={14} className="h-8 w-8 text-red-500" />
                       </Button>
                     </div>
                   </td>
@@ -449,20 +454,20 @@ const Archives = () => {
                 <div className="flex gap-2 pt-2">
                   <Button
                     variant="outline"
-                    className="flex-1 h-10 text-[9px] uppercase font-black"
+                    className="flex-1 bg-teal-300 h-10 text-[9px] uppercase font-black"
                     onClick={() => setViewingRecord(r)}
                   >
-                    View
+                    Details <InfoIcon className="ml-2 text-teal-900" />
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 h-10 text-[9px] uppercase font-black"
+                    className="flex-1 bg-yellow-100 h-10 text-[9px] uppercase font-black"
                     onClick={() => {
                       setSelectedRecord(r);
                       setIsModalOpen(true);
                     }}
                   >
-                    Edit
+                    Update <Edit3 className="ml-2 text-amber-900" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -470,7 +475,7 @@ const Archives = () => {
                     className="h-10 w-10 text-red-500/50"
                     onClick={() => setDeleteId(r.id)}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={16} className="h-8 w-8 text-red-500" />
                   </Button>
                 </div>
               </div>

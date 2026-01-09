@@ -18,6 +18,9 @@ import {
   Loader2,
   Filter,
   ArrowRightLeft,
+  Edit3,
+  Info,
+  InfoIcon,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
@@ -439,7 +442,10 @@ const Transfers = () => {
                           className="h-9 w-9 text-gray-400 hover:text-blue-500"
                           onClick={() => setViewingTransfer(item)}
                         >
-                          <SquareArrowOutUpLeft size={14} />
+                          <SquareArrowOutUpLeft
+                            size={14}
+                            className="h-8 w-8 text-teal-500"
+                          />
                         </Button>
                         <Button
                           variant="ghost"
@@ -450,7 +456,10 @@ const Transfers = () => {
                             setIsModalOpen(true);
                           }}
                         >
-                          <Edit2 size={14} />
+                          <Edit3
+                            size={14}
+                            className="h-8 w-8 text-yellow-500"
+                          />
                         </Button>
                         <Button
                           variant="ghost"
@@ -458,7 +467,7 @@ const Transfers = () => {
                           className="h-9 w-9 text-gray-400 hover:text-red-500"
                           onClick={() => setDeleteId(item.id)}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={14} className="h-8 w-8 text-red-500" />
                         </Button>
                       </div>
                     </td>
@@ -512,20 +521,20 @@ const Transfers = () => {
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                  className="flex-1 h-11 bg-teal-300 border-white/10 text-[9px] uppercase font-black tracking-widest"
                   onClick={() => setViewingTransfer(item)}
                 >
-                  Details
+                  Details <InfoIcon className="ml-2 text-teal-900" />
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                  className="flex-1 h-11 bg-yellow-100 border-white/10 text-[9px] uppercase font-black tracking-widest"
                   onClick={() => {
                     setSelectedTransfer(item);
                     setIsModalOpen(true);
                   }}
                 >
-                  Edit
+                  Update <Edit3 className="ml-2 text-amber-900" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -533,7 +542,7 @@ const Transfers = () => {
                   className="h-11 w-11 text-red-500/50"
                   onClick={() => setDeleteId(item.id)}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={16} className="h-8 w-8 text-red-500" />
                 </Button>
               </div>
             </div>

@@ -395,7 +395,7 @@ const AuthUsersPage = () => {
                   </span>
                 )}
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1  transition-opacity">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -406,18 +406,18 @@ const AuthUsersPage = () => {
                     setIsModalOpen(true);
                   }}
                 >
-                  <Edit2 size={12} />
+                  <Edit2 size={12} className="h-8 w-8 text-yellow-500" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 hover:text-red-500"
+                  className="h-8 w-8 hover:text-red-500 ml-5"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDeleteEmail(user.email);
                   }}
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={12} className="h-8 w-8 text-red-500" />
                 </Button>
               </div>
             </div>
@@ -435,7 +435,7 @@ const AuthUsersPage = () => {
               </span>
               <SquareArrowOutUpLeft
                 size={14}
-                className="text-gray-600 group-hover:text-blue-500 transition-colors"
+                className="group-hover:text-blue-500 transition-colors h-8 w-8 text-teal-500"
               />
             </div>
           </div>

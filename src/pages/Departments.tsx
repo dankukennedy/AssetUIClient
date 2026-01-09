@@ -18,6 +18,8 @@ import {
   Loader2,
   Terminal,
   Filter,
+  Edit3,
+  InfoIcon,
 } from "lucide-react";
 import { useTheme } from "../component/theme-provider";
 import { cn } from "../lib/utils";
@@ -544,7 +546,7 @@ const DepartmentsPage = () => {
                             setIsModalOpen(true);
                           }}
                         >
-                          <Edit2 size={14} />
+                          <Edit3 size={14} />
                         </Button>
                         <Button
                           variant="ghost"
@@ -601,20 +603,20 @@ const DepartmentsPage = () => {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    className="flex-1 h-11 bg-teal-300 border-white/10 text-[9px] uppercase font-black tracking-widest"
                     onClick={() => setViewingDept(dept)}
                   >
-                    Matrix
+                    Details <InfoIcon className="ml-2 text-teal-900" />
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 h-11 border-white/10 text-[9px] uppercase font-black tracking-widest"
+                    className="flex-1 h-11 bg-yellow-100 border-white/10 text-[9px] uppercase font-black tracking-widest"
                     onClick={() => {
                       setSelectedDept(dept);
                       setIsModalOpen(true);
                     }}
                   >
-                    Config
+                    Update <Edit3 className="ml-2 text-amber-900" />
                   </Button>
                   <Button
                     variant="ghost"
