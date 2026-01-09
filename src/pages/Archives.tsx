@@ -236,7 +236,7 @@ const Archives = () => {
           <Button
             variant="outline"
             onClick={downloadCSV}
-            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none h-12 bg-green-800 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
           >
             <Download size={16} className="mr-2" /> Export CSV
           </Button>

@@ -385,7 +385,7 @@ const DepartmentsPage = () => {
         <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
-            className="flex-1 sm:flex-none h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none bg-green-800 h-12 rounded-xl border-slate-700/50 font-black text-[10px] uppercase tracking-widest"
           >
             <Download size={16} className="mr-2" /> Export Grid
           </Button>
